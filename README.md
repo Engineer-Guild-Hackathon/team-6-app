@@ -4,7 +4,7 @@
 ## チーム情報
 - チーム番号: 6
 - チーム名: 完全感覚Gambler
-- プロダクト名: （ここに記入）
+- プロダクト名: Study Derby
 - メンバー: use-hunks, Takimi-no
 
 ---
