@@ -89,9 +89,9 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="flex gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8 items-stretch">
         <Card className="flex-1 rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="pt-6 pb-6 px-6 flex flex-col items-center text-center">
+          <CardContent className="pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-orange-50 mb-3">
               <Coins className="h-7 w-7 text-orange-500" />
             </div>
