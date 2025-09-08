@@ -24,7 +24,17 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <div className="text-2xl font-bold text-emerald-600">🎯 StudyBet</div>
+              {/* ← ココをクリックでホームに戻る */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('dashboard')}
+                aria-label="ホームに戻る"
+                title="ホームに戻る"
+                className="text-2xl font-bold text-emerald-600 inline-flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg px-1"
+              >
+                <span role="img" aria-hidden="true">🎯</span>
+                <span>StudyBet</span>
+              </button>
             </div>
           </div>
           
