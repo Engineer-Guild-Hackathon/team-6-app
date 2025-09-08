@@ -148,12 +148,12 @@ export function getCurrentUser(): User {
     grade: '学生',
     betCoins: 1500,
     totalStudyTime: 85,
-    currentWeekStudyTime: 0,
+    currentWeekStudyTime: 10,
     studySubjects: ['TOEIC', '簿記'],
     avatar: '🎯',
     weeklyRank: [6, 7, 6, 6, 7, 6, 6],
     createdAt: '2024-01-01',
-    inRace: false, 
+    inRace: true, 
     raceId: RACE_ID, 
   };
 }
