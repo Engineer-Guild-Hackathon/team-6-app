@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+
 import AuthScreen from './components/auth/AuthScreen';
 import Navbar from './components/layout/Navbar';
 import Dashboard from './components/dashboard/Dashboard';
@@ -8,45 +10,68 @@ import RaceScreen from './components/race/RaceScreen';
 import RankingScreen from './components/ranking/RankingScreen';
 import ProfileScreen from './components/profile/ProfileScreen';
 
-function AppContent() {
+function RoutedAppContent() {
   const { isAuthenticated } = useAppContext();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
+  if (!isAuthenticated) return <AuthScreen />;
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
+  // パス <-> タブ名 の相互変換（Navbar を無改修で使うため）
+  const pathToTab = (pathname: string): string => {
+    if (pathname.startsWith('/study')) return 'study';
+    if (pathname.startsWith('/race')) return 'race';
+    if (pathname.startsWith('/ranking')) return 'ranking';
+    if (pathname.startsWith('/profile')) return 'profile';
+    return 'dashboard'; // '/'
+  };
+
+  const tabToPath = (tab: string): string => {
+    switch (tab) {
       case 'study':
-        return <StudyTracker />;
+        return '/study';
       case 'race':
-        return <RaceScreen />;
+        return '/race';
       case 'ranking':
-        return <RankingScreen />;
+        return '/ranking';
       case 'profile':
-        return <ProfileScreen />;
+        return '/profile';
+      case 'dashboard':
       default:
-        return <Dashboard />;
+        return '/';
     }
+  };
+
+  const activeTab = pathToTab(location.pathname);
+  const setActiveTab = (tab: string) => {
+    navigate(tabToPath(tab));
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      {renderContent()}
+
+      {/* ここが画面の出し分け（URLで制御） */}
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/study" element={<StudyTracker />} />
+        <Route path="/race" element={<RaceScreen />} />
+        <Route path="/ranking" element={<RankingScreen />} />
+        <Route path="/profile" element={<ProfileScreen />} />
+
+        {/* レース詳細（順位表クリックでここへ遷移） */}
+        <Route path="/races/:raceId" element={<RaceScreen />} />
+      </Routes>
     </div>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <BrowserRouter>
+        <RoutedAppContent />
+      </BrowserRouter>
     </AppProvider>
   );
 }
-
-export default App;
