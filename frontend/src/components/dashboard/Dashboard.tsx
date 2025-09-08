@@ -62,7 +62,7 @@ export default function Dashboard() {
     .reduce((total, s) => total + s.duration, 0);
 
   // 週次の可視化
-  const MAX_DAILY = 8; // 1日の目安
+  const MAX_DAILY = 10; // 1日の目安 変更できるようにしたい
   const base = { mon: 4, tue: 6, wed: 3, thu: 5, fri: 7, sat: 2 };
   const sumMonToSat = base.mon + base.tue + base.wed + base.thu + base.fri + base.sat;
   const sundayHours = Math.max(0, (user.currentWeekStudyTime ?? 0) - sumMonToSat);
@@ -149,22 +149,25 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            {/* 縦棒グラフ */}
+            <div className="flex items-end justify-between h-40 px-2">
               {weeklyProgress.map((day) => (
-                <div key={day.day} className="flex items-center space-x-4">
-                  <div className="w-8 text-sm font-medium text-gray-700">{day.day}</div>
-                  <div className="flex-1">
-                    <div className="bg-gray-200/70 rounded-full h-3 relative overflow-hidden">
-                      <div
-                        className="bg-emerald-500 h-full rounded-full transition-[width] duration-500"
-                        style={{ width: `${Math.min((day.hours / MAX_DAILY) * 100, 100)}%` }}
-                      />
-                    </div>
+                <div key={day.day} className="flex flex-col items-center flex-1 mx-1">
+                  {/* バー */}
+                  <div className="w-6 h-32 bg-gray-200/70 rounded-t-lg relative overflow-hidden h-full flex items-end">
+                    <div
+                      className="bg-emerald-500 w-full transition-[height] duration-500 rounded-t-lg"
+                      style={{ height: `${Math.min((day.hours / MAX_DAILY) * 100, 100)}%`,minHeight: day.hours ? 0:0}}
+                    />
                   </div>
-                  <div className="w-16 text-sm font-medium text-right">{day.hours}時間</div>
+                  {/* 下にラベル */}
+                  <div className="mt-2 text-sm font-medium text-gray-700">{day.day}</div>
+                  <div className="text-xs text-gray-500">{day.hours}時間</div>
                 </div>
               ))}
             </div>
+
+            {/* 週間目標バー（横棒はそのまま残す） */}
             <div className="mt-6 p-4 bg-emerald-50 rounded-lg">
               <p className="text-sm text-emerald-700">
                 💡 週間目標: 40時間 (現在: {(user.currentWeekStudyTime ?? 0).toLocaleString('ja-JP')}時間)
