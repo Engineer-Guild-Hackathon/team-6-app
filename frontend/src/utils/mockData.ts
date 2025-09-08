@@ -153,7 +153,7 @@ export function getCurrentUser(): User {
     avatar: '🎯',
     weeklyRank: [6, 7, 6, 6, 7, 6, 6],
     createdAt: '2024-01-01',
-    inRace: true, 
+    inRace: false, 
     raceId: RACE_ID, 
   };
 }

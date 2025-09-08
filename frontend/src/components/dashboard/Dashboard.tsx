@@ -278,29 +278,66 @@ export default function Dashboard() {
             ) : (
               // 2) 参加していない場合（既存のポイント表示のまま）
               <div className="space-y-4">
+                {/* 共通：優勝賞金 */}
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
                   <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
                   <p className="text-2xl font-bold text-amber-900">
                     {race.totalPot.toLocaleString('ja-JP')} BC
                   </p>
                 </div>
-                <div className="rounded-lg border border-gray-100 p-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <div className="flex justify-between">
-                      <span>日別内訳</span>
-                      <span>
-                        {perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt
-                      </span>
+
+                {/* 横並び：左=順位表(1~3位)、右=ポイント合計 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 左：順位表（1〜3位のみ、1位との差は表示しない） */}
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs text-gray-500 mb-3">順位表</p>
+                    <ul className="space-y-2">
+                      {race.participants.slice(0, 3).map((p) => {
+                        const medal = p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : '🥉';
+                        return (
+                          <li
+                            key={p.user.id}
+                            className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5 hover:bg-gray-50"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-right tabular-nums text-gray-500">{p.position}.</span>
+                              <span className="w-6 text-center">{medal}</span>
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
+                                {p.user.avatar}
+                              </span>
+                              <span
+                                className="truncate text-base md:text-lg font-medium text-gray-800"
+                                title={p.user.username}
+                              >
+                                {p.user.username}
+                              </span>
+                            </div>
+                            {/* 不参加なので「1位との差」は出さない */}
+                            <span className="text-sm text-transparent select-none">_</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {/* 右：現状の順位によるポイント合計（既存ロジック） */}
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <div className="flex justify-between">
+                        <span>日別内訳</span>
+                        <span>
+                          {perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ※ 暫定ロジックです。サーバーの正式ルールに合わせて後で置き換えてください。
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      ※ 暫定ロジックです。サーバーの正式ルールに合わせて後で置き換えてください。
-                    </p>
                   </div>
                 </div>
               </div>
             )}
-
           </CardContent>
         </Card>
       </div>
