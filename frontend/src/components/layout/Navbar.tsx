@@ -33,7 +33,7 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
                 className="text-2xl font-bold text-emerald-600 inline-flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg px-1"
               >
                 <span role="img" aria-hidden="true">🎯</span>
-                <span>Study Derey</span>
+                <span>Study Derby</span>
               </button>
             </div>
           </div>
