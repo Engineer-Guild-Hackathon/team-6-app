@@ -1,5 +1,7 @@
 import { User, Race, RaceParticipant } from '../types';
 
+const RACE_ID = 'race_2024_w1';
+
 export const mockUsers: User[] = [
   {
     id: '1',
@@ -78,34 +80,52 @@ export const mockUsers: User[] = [
   },
 ];
 
-export function generateMockRace(): Race {
-  // ランダムに15人選出
-  const shuffled = [...mockUsers, ...Array(10).fill(null).map((_, i) => ({
-    id: `user_${i + 6}`,
-    username: `user_${i + 6}`,
-    email: `user${i + 6}@example.com`,
-    age: Math.floor(Math.random() * 20) + 18,
-    occupation: Math.random() > 0.5 ? '会社員' : '学生',
-    grade: Math.random() > 0.5 ? '社会人' : '学生',
-    betCoins: Math.floor(Math.random() * 3000) + 500,
-    totalStudyTime: Math.floor(Math.random() * 200) + 50,
-    currentWeekStudyTime: Math.floor(Math.random() * 40) + 5,
-    studySubjects: ['勉強'],
-    avatar: ['🧑', '👩', '👨', '👩‍🎓', '👨‍💼'][Math.floor(Math.random() * 5)],
-    weeklyRank: Array(7).fill(0).map(() => Math.floor(Math.random() * 15) + 1),
-    createdAt: '2024-01-01',
-  }))].sort(() => 0.5 - Math.random()).slice(0, 15);
+export function generateMockRace(currentUser?: User): Race {
+  // ベースのプール（既存モック + ランダム生成10人）
+  const basePool: User[] = [
+    ...mockUsers,
+    ...Array(10).fill(null).map((_, i) => ({
+      id: `user_${i + 6}`,
+      username: `user_${i + 6}`,
+      email: `user${i + 6}@example.com`,
+      age: Math.floor(Math.random() * 20) + 18,
+      occupation: Math.random() > 0.5 ? '会社員' : '学生',
+      grade: Math.random() > 0.5 ? '社会人' : '学生',
+      betCoins: Math.floor(Math.random() * 3000) + 500,
+      totalStudyTime: Math.floor(Math.random() * 200) + 50,
+      currentWeekStudyTime: Math.floor(Math.random() * 40) + 5,
+      studySubjects: ['勉強'],
+      avatar: ['🧑', '👩', '👨', '👩‍🎓', '👨‍💼'][Math.floor(Math.random() * 5)],
+      weeklyRank: Array(7).fill(0).map(() => Math.floor(Math.random() * 15) + 1),
+      createdAt: '2024-01-01',
+    })),
+  ];
 
-  const participants: RaceParticipant[] = shuffled.map((user, index) => ({
+  // currentUser を含めたい場合は先頭に入れておく（重複回避も一応）
+  const pool = currentUser
+    ? [currentUser, ...basePool.filter(u => u.id !== currentUser.id)]
+    : basePool;
+
+  // シャッフルして15人抽出
+  const shuffled = [...pool].sort(() => 0.5 - Math.random()).slice(0, 15);
+
+  // RaceParticipant を作成（id を付与）
+  let participants: RaceParticipant[] = shuffled.map((user) => ({
+    id: `rp_${RACE_ID}_${user.id}`,
     user,
     currentStudyTime: user.currentWeekStudyTime,
     dailyProgress: Array(7).fill(0).map(() => Math.floor(Math.random() * 8) + 1),
-    position: index + 1,
+    position: 0, // まず 0、後で並べ替え後に採番
     odds: {
       win: Math.round((Math.random() * 10 + 2) * 100) / 100,
       place: Math.round((Math.random() * 5 + 1.2) * 100) / 100,
     },
   }));
+
+    // 今週累計で降順ソート & 1..n で順位を採番
+  participants
+    .sort((a, b) => b.currentStudyTime - a.currentStudyTime)
+    .forEach((p, idx) => (p.position = idx + 1));
 
   return {
     id: 'race_2024_w1',
@@ -128,10 +148,12 @@ export function getCurrentUser(): User {
     grade: '学生',
     betCoins: 1500,
     totalStudyTime: 85,
-    currentWeekStudyTime: 20,
+    currentWeekStudyTime: 0,
     studySubjects: ['TOEIC', '簿記'],
     avatar: '🎯',
     weeklyRank: [6, 7, 6, 6, 7, 6, 6],
     createdAt: '2024-01-01',
+    inRace: true, 
+    raceId: RACE_ID, 
   };
 }
