@@ -163,6 +163,15 @@ export default function Dashboard() {
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="h-5 w-5 text-amber-600" />
               <span>今週のレース状況</span>
+                {user.inRace ? (
+                  <span className="ml-3 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-base font-semibold text-emerald-700">
+                    レース参加
+                  </span>
+                ) : (
+                  <span className="ml-3 inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-base font-semibold text-gray-600">
+                    ベット参加
+                  </span>
+                )}
             </CardTitle>
           </CardHeader>
 
@@ -175,8 +184,8 @@ export default function Dashboard() {
             </div>
 
             {user.inRace && me ? (
-              // 1) 参加している場合
               <div className="space-y-4">
+                {/* 優勝賞金（共通） */}
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
                   <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
                   <p className="text-2xl font-bold text-amber-900">
@@ -184,34 +193,90 @@ export default function Dashboard() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-gray-100 p-4">
-                    <p className="text-xs text-gray-500">現在の順位</p>
-                    <p className="text-2xl font-bold text-gray-900">{me.position}位</p>
-                    <p className="text-xs text-gray-500">{participants.length}人中</p>
-                  </div>
+                {/* 順位表（見やすいレイアウト版） */}
+                {(() => {
+                  const first = participants[0];
+                  const diffToFirstHours = Math.max(
+                    0,
+                    (first?.currentStudyTime ?? 0) - me.currentStudyTime
+                  );
 
-                  <div className="rounded-lg border border-gray-100 p-4">
-                    <p className="text-xs text-gray-500">1位との差</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {diffToFirstHours}時間
-                    </p>
-                  </div>
-                </div>
+                  // 上位3名 + （自分がTOP3外なら自分 / TOP3内なら4位）
+                  const top3 = participants.slice(0, 3);
+                  const rows = me.position > 3 ? [...top3, me] : [...top3, participants[3]].filter(Boolean);
 
-                <div className="rounded-lg border border-gray-100 p-4">
-                  <p className="text-xs text-gray-500 mb-2">上位3名</p>
-                  <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1">
-                    {top3.map((name, i) => (
-                      <li key={i} className={i === 0 ? 'font-semibold text-amber-700' : ''}>
-                        {name}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+                  // 重複除去
+                  const seen = new Set<string>();
+                  const list = rows.filter(p => !seen.has(p.user.id) && (seen.add(p.user.id), true));
+
+                  const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
+
+                  return (
+                    <div className="rounded-xl border border-gray-100 p-4">
+                      <p className="text-xs text-gray-500 mb-3">順位表</p>
+                      <ul className="space-y-2">
+                        {list.map((p) => {
+                          const isMe = p.user.id === user.id;
+                          return (
+                            <li
+                              key={p.user.id}
+                              className={[
+                                "flex items-center justify-between rounded-lg border",
+                                "border-gray-100 bg-white px-3 py-2.5 transition-colors",
+                                "hover:bg-gray-50",
+                                isMe ? "ring-1 ring-emerald-200/60" : ""
+                              ].join(" ")}
+                            >
+                              {/* 左側：順位・アバター・名前 */}
+                              <div className="flex items-center gap-3 min-w-0">
+                                {/* 順位（等幅数字で揃える） */}
+                                <span className="w-8 text-right tabular-nums text-gray-500">{p.position}.</span>
+
+                                {/* メダル or プレースホルダ */}
+                                <span className="w-6 text-center">{medal(p.position)}</span>
+
+                                {/* アバター */}
+                                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
+                                  {p.user.avatar}
+                                </span>
+
+                                {/* ユーザー名 */}
+                                <span
+                                  className={[
+                                    "truncate",
+                                    "text-base md:text-lg",
+                                    isMe ? "font-semibold text-gray-900" : "font-medium text-gray-800"
+                                  ].join(" ")}
+                                  title={p.user.username}
+                                >
+                                  {p.user.username}
+                                </span>
+
+                                {isMe && (
+                                  <span className="ml-2 shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                                    あなた
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* 右側：自分の行だけ 1位との差 */}
+                              <div className="shrink-0">
+                                {isMe ? (
+                                  <span className="text-base text-gray-600">− 1位との差 {diffToFirstHours}時間</span>
+                                ) : (
+                                  <span className="text-sm text-transparent select-none">_</span>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
-              // 2) 参加していない場合
+              // 2) 参加していない場合（既存のポイント表示のまま）
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
                   <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
@@ -219,7 +284,6 @@ export default function Dashboard() {
                     {race.totalPot.toLocaleString('ja-JP')} BC
                   </p>
                 </div>
-
                 <div className="rounded-lg border border-gray-100 p-4">
                   <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
                   <div className="text-sm text-gray-700 space-y-1">
@@ -236,6 +300,7 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
           </CardContent>
         </Card>
       </div>
