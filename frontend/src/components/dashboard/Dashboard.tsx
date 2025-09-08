@@ -55,35 +55,52 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Coins className="mx-auto h-8 w-8 text-orange-500 mb-2" />
-            <p className="text-gray-600">保有ベットコイン</p>
-            <p className="text-2xl font-bold text-orange-600">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-8 items-stretch">
+        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-orange-50 mb-2 sm:mb-3">
+              <Coins className="h-7 w-7 text-orange-500" />
+            </div>
+            <p className="text-sm md:text-base text-gray-600">保有ベットコイン</p>
+            <p className="text-2xl md:text-3xl font-bold text-orange-600 mt-0.5 md:mt-1">
               {user.betCoins.toLocaleString('ja-JP')}
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Clock className="mx-auto h-8 w-8 text-emerald-500 mb-2" />
-            <p className="text-gray-600">今週の勉強時間</p>
-            <p className="text-2xl font-bold text-emerald-600">{user.currentWeekStudyTime}時間</p>
+
+        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
+              <Clock className="h-7 w-7 text-emerald-500" />
+            </div>
+            <p className="text-sm md:text-base text-gray-600">今週の勉強時間</p>
+            <p className="text-2xl md:text-3xl font-bold text-emerald-600 mt-0.5 md:mt-1">
+              {(user.currentWeekStudyTime ?? 0).toLocaleString('ja-JP')}時間
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <TrendingUp className="mx-auto h-8 w-8 text-blue-500 mb-2" />
-            <p className="text-gray-600">総勉強時間</p>
-            <p className="text-2xl font-bold text-blue-600">{user.totalStudyTime}時間</p>
+
+        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-blue-50 mb-2 sm:mb-3">
+              <TrendingUp className="h-7 w-7 text-blue-500" />
+            </div>
+            <p className="text-sm md:text-base text-gray-600">総勉強時間</p>
+            <p className="text-2xl md:text-3xl font-bold text-blue-600 mt-0.5 md:mt-1">
+              {(user.totalStudyTime ?? 0).toLocaleString('ja-JP')}時間
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Target className="mx-auto h-8 w-8 text-purple-500 mb-2" />
-            <p className="text-gray-600">今日の勉強</p>
-            <p className="text-2xl font-bold text-purple-600">{todayStudyTime}時間</p>
+
+        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-purple-50 mb-2 sm:mb-3">
+              <Target className="h-7 w-7 text-purple-500" />
+            </div>
+            <p className="text-sm md:text-base text-gray-600">今日の勉強</p>
+            <p className="text-2xl md:text-3xl font-bold text-purple-600 mt-0.5 md:mt-1">
+              {(todayStudyTime ?? 0).toLocaleString('ja-JP')}時間
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -98,6 +115,62 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* 昨日の学習リスト */}
+            {(() => {
+              // 昨日の日付（ローカル）
+              const now = new Date();
+              const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+              const yKey = y.toDateString();
+
+              // 昨日分を抽出
+              const yesterdaySessions = studySessions.filter(
+                (s) => new Date(s.date).toDateString() === yKey
+              );
+
+              // 何もなければダミー表示
+              const items =
+                yesterdaySessions.length > 0
+                  ? yesterdaySessions.map((s, i) => ({
+                      id: s.id ?? `ys-${i}`,
+                      subject: s.subject,
+                      duration: s.duration,
+                      note: s.betCoinsEarned > 0 ? `+${s.betCoinsEarned} BC 獲得` : '記録のみ',
+                    }))
+                  : [
+                      { id: 'd1', subject: 'TOEIC リスニング', duration: 1.5, note: '公式問題集 Test 2' },
+                      { id: 'd2', subject: '簿記 仕訳', duration: 0.8, note: '過去問 10問' },
+                      { id: 'd3', subject: '英単語', duration: 0.5, note: 'ターゲット600語復習' },
+                    ];
+
+              return (
+                <div className="mb-5 rounded-xl border border-gray-100 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900">昨日の学習</p>
+                    <span className="text-xs text-gray-500">
+                      {y.getFullYear()}/{y.getMonth() + 1}/{y.getDate()}
+                    </span>
+                  </div>
+
+                  <ul className="divide-y divide-gray-100">
+                    {items.map((it) => (
+                      <li key={it.id} className="py-2 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+                            {it.subject}
+                          </span>
+                          <p className="mt-1 text-sm text-gray-700 truncate">{it.note}</p>
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold text-gray-900 tabular-nums">
+                          {it.duration} 時間
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
+
+            {/* 縦棒グラフ（既存） */}
             <div className="flex items-end justify-between h-40 px-2">
               {weeklyProgress.map((d) => (
                 <div key={d.day} className="flex flex-col items-center flex-1 mx-1">
@@ -112,29 +185,30 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+
+            {/* 週間目標（透明感ある色分岐） */}
             <div className="mt-4 bg-emerald-50 p-3 rounded-lg">
               💡 週間目標: 40時間 (現在: {user.currentWeekStudyTime}時間)
               <div className="mt-2 bg-gray-200 h-2 rounded-full">
                 {(() => {
                   const progress = (user.currentWeekStudyTime ?? 0) / 40;
-                  let barColor = "bg-emerald-500/70"; // デフォルト: 緑
+                  let barColor = 'bg-emerald-500/70'; // デフォ：緑（透過）
                   if (progress < 0.3) {
-                    barColor = "bg-red-500/70"; // 30%未満 → 赤
+                    barColor = 'bg-red-500/70'; // 30%未満 → 赤（透過）
                   } else if (progress < 0.6) {
-                    barColor = "bg-yellow-500/70"; // 60%未満 → 黄
+                    barColor = 'bg-yellow-500/70'; // 60%未満 → 黄（透過）
                   }
                   return (
                     <div
                       className={`${barColor} h-2 rounded-full transition-[width] duration-500`}
-                      style={{
-                        width: `${Math.min(progress * 100, 100)}%`,
-                      }}
+                      style={{ width: `${Math.min(progress * 100, 100)}%` }}
                     />
                   );
                 })()}
               </div>
             </div>
           </CardContent>
+
         </Card>
 
         {/* Race Status */}
@@ -298,6 +372,18 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Study Subjects */}
+      <Card className="mt-8 rounded-2xl border border-gray-100 shadow-sm">
+        <CardHeader> 
+          <CardTitle>勉強科目</CardTitle> 
+        </CardHeader> 
+        <CardContent> 
+          <div className="flex flex-wrap gap-2"> {user.studySubjects.map((subject: string, index: number) => ( <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium" > {subject} </span> 
+        ))} 
+          </div> 
+        </CardContent> 
+      </Card>
     </div>
   );
 }
