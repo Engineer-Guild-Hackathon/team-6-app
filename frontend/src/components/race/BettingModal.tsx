@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { X, Coins } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { X, Coins, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
+
 
 interface BettingModalProps {
   participant: any;
@@ -14,43 +15,60 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
   const { placeBet, currentRace } = useAppContext();
   const [betType, setBetType] = useState<'win' | 'place'>('win');
   const [amount, setAmount] = useState(100);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handlePlaceBet = () => {
+  const odds = betType === 'win' ? participant.odds.win : participant.odds.place;
+  const expectedReturn = Math.floor(amount * odds);
+  const balanceIfHit = userBalance - amount + expectedReturn;
+
+  const validate = useCallback(() => {
     if (amount < 100) {
       alert('最小ベット額は100ベットコインです。');
-      return;
+      return false;
     }
-
     if (amount > userBalance) {
       alert('残高が不足しています。');
-      return;
+      return false;
     }
+    return true;
+  }, [amount, userBalance]);
 
-    const odds = betType === 'win' ? participant.odds.win : participant.odds.place;
-    const expectedReturn = Math.floor(amount * odds);
-
-    const confirmMessage = `${participant.user.username}に${amount}BCを${betType === 'win' ? '単勝' : '複勝'}でベットしますか？\n\n予想配当: ${expectedReturn}BC`;
-    
-    if (confirm(confirmMessage)) {
-      placeBet({
-        userId: 'current_user',
-        raceId: currentRace?.id || '',
-        participantId: participant.user.id,
-        type: betType,
-        amount,
-        odds,
-        createdAt: new Date().toISOString(),
-      });
-      
-      alert(`ベットが完了しました！\n${participant.user.username}に${amount}BCをベットしました。`);
-      onClose();
-    }
+  const handleOpenConfirm = () => {
+    if (!validate()) return;
+    setShowConfirm(true);
   };
 
-  const expectedReturn = Math.floor(amount * (betType === 'win' ? participant.odds.win : participant.odds.place));
+  const confirmPlaceBet = () => {
+    // 実行
+    placeBet({
+      userId: 'current_user',
+      raceId: currentRace?.id || '',
+      participantId: participant.user.id,
+      type: betType,
+      amount,
+      odds,
+      createdAt: new Date().toISOString(),
+    });
+
+    // 完了トースト代わり（必要なら既存のToastに変更可）
+    alert(`ベットが完了しました！\n${participant.user.username}に${amount}BCをベットしました。`);
+    setShowConfirm(false);
+    onClose();
+  };
+
+  // Escで確認カードを閉じる
+  useEffect(() => {
+    if (!showConfirm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowConfirm(false);
+      if (e.key === 'Enter') confirmPlaceBet();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showConfirm]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg max-w-md w-full mx-4">
         <Card>
           <CardHeader>
@@ -59,6 +77,8 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               <button
                 onClick={onClose}
                 className="text-gray-500 hover:text-gray-700"
+                aria-label="閉じる"
+                title="閉じる"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -83,10 +103,10 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setBetType('win')}
-                  className={`p-3 rounded-lg border-2 text-center ${
+                  className={`p-3 rounded-lg border-2 text-center transition ${
                     betType === 'win'
                       ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-200 bg-white text-gray-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <div className="font-semibold">単勝</div>
@@ -95,10 +115,10 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
                 </button>
                 <button
                   onClick={() => setBetType('place')}
-                  className={`p-3 rounded-lg border-2 text-center ${
+                  className={`p-3 rounded-lg border-2 text-center transition ${
                     betType === 'place'
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <div className="font-semibold">複勝</div>
@@ -115,11 +135,11 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               </label>
               <input
                 type="number"
-                min="100"
+                min={100}
                 max={userBalance}
-                step="100"
+                step={100}
                 value={amount}
-                onChange={(e) => setAmount(parseInt(e.target.value) || 100)}
+                onChange={(e) => setAmount(Number(e.target.value) || 100)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <div className="flex space-x-2 mt-2">
@@ -154,7 +174,7 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
                 <div className="flex justify-between font-semibold">
                   <span>的中時残高</span>
                   <span className="text-emerald-600">
-                    {(userBalance - amount + expectedReturn).toLocaleString()} BC
+                    {balanceIfHit.toLocaleString()} BC
                   </span>
                 </div>
               </div>
@@ -165,7 +185,7 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               <Button variant="outline" onClick={onClose} className="flex-1">
                 キャンセル
               </Button>
-              <Button onClick={handlePlaceBet} className="flex-1">
+              <Button onClick={handleOpenConfirm} className="flex-1" disabled={amount < 100 || amount > userBalance}>
                 <Coins className="h-4 w-4 mr-2" />
                 ベットする
               </Button>
@@ -173,6 +193,77 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
           </CardContent>
         </Card>
       </div>
+
+      {/* ===== 確認用の“小さな画面”オーバーレイ ===== */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+          <div
+            className="w-full max-w-sm mx-4 rounded-xl bg-white shadow-2xl ring-1 ring-black/5 animate-[fadeIn_120ms_ease-out] relative"
+            role="dialog"
+            aria-modal="true"
+            aria-label="ベット内容の確認"
+          >
+            <div className="absolute right-3 top-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                aria-label="閉じる"
+                title="閉じる"
+                autoFocus
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                <h2 className="text-lg font-semibold">この内容でベットしますか？</h2>
+              </div>
+
+              <div className="text-center mb-4">
+                <div className="text-3xl mb-2">{participant.user.avatar}</div>
+                <div className="font-semibold">{participant.user.username}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {betType === 'win' ? '単勝' : '複勝'} / オッズ {odds}倍
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>ベット額</span>
+                  <span className="font-semibold">{amount.toLocaleString()} BC</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>予想配当</span>
+                  <span className="font-semibold text-green-700">+{expectedReturn.toLocaleString()} BC</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>的中時残高</span>
+                  <span className="font-semibold text-emerald-700">{balanceIfHit.toLocaleString()} BC</span>
+                </div>
+              </div>
+
+              <div className="mt-5 flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1"
+                >
+                  戻る
+                </Button>
+                <Button
+                  onClick={confirmPlaceBet}
+                  className="flex-1"
+                >
+                  この内容で確定
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===== /確認画面 ===== */}
     </div>
   );
 }
