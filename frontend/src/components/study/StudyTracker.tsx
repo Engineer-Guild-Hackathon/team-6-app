@@ -3,6 +3,9 @@ import { Clock, Play, Pause, Square, Plus, Trophy } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
+// NEW: 追加
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function StudyTracker() {
   const { user, studySessions, addStudySession } = useAppContext();
@@ -16,7 +19,7 @@ export default function StudyTracker() {
     let interval: NodeJS.Timeout;
     if (isRunning) {
       interval = setInterval(() => {
-        setTime(time => time + 1);
+        setTime((time) => time + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -24,7 +27,12 @@ export default function StudyTracker() {
 
   const handleStart = () => {
     if (!subject) {
-      alert('勉強科目を選択してください！');
+      // CHANGED: alert -> toast.warn
+      toast.warn('勉強科目を選択してください！', {
+        position: 'top-center',
+        autoClose: 3000, //アラートが閉じるまでの時間
+        theme: 'colored',
+      });
       return;
     }
     setIsRunning(true);
@@ -38,7 +46,7 @@ export default function StudyTracker() {
     if (time > 0) {
       const hours = Math.floor(time / 3600);
       const minutes = Math.floor((time % 3600) / 60);
-      const duration = hours + (minutes / 60);
+      const duration = hours + minutes / 60;
       const betCoinsEarned = Math.floor(duration * 100);
 
       addStudySession({
@@ -49,9 +57,25 @@ export default function StudyTracker() {
         betCoinsEarned,
       });
 
-      alert(`お疲れ様でした！\n${Math.floor(duration * 100) / 100}時間勉強して${betCoinsEarned}ベットコインを獲得しました！`);
+      // CHANGED: alert -> toast.success
+      toast.info(
+        `お疲れ様でした！\n${Math.floor(duration * 100) / 100}時間勉強して${betCoinsEarned}ベットコインを獲得しました！`,
+        {
+          position: 'top-center',
+          autoClose: 3500,
+          theme: 'colored',
+          // icon を少しリッチに
+          icon: '🏁',
+        }
+      );
+    } else {
+      // NEW: 0秒で終了した時の案内
+      toast.error('タイマーが0秒です。記録は追加されません。', {
+        position: 'top-center',
+        autoClose: 2000,
+      });
     }
-    
+
     setIsRunning(false);
     setTime(0);
     setSubject('');
@@ -59,10 +83,11 @@ export default function StudyTracker() {
 
   const handleAddSubject = () => {
     if (newSubject.trim() && user) {
-      // In a real app, this would update the user's subjects
       setSubject(newSubject);
       setNewSubject('');
       setShowNewSubjectInput(false);
+      // OPTIONAL: 追加トースト
+      toast.success('科目を追加しました', { autoClose: 1500 });
     }
   };
 
@@ -70,13 +95,18 @@ export default function StudyTracker() {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!user) return null;
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {/* NEW: ここに置く or App.tsx で全体に1回だけ置く */}
+      <ToastContainer position="top-center" theme="colored" />
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">勉強記録</h1>
         <p className="text-gray-600">時間を計測してベットコインを稼ごう！</p>
