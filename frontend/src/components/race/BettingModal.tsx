@@ -3,6 +3,9 @@ import { X, Coins, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
+// 先頭で追加
+import { toast } from 'react-toastify';
+
 
 
 interface BettingModalProps {
@@ -50,8 +53,19 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
       createdAt: new Date().toISOString(),
     });
 
-    // 完了トースト代わり（必要なら既存のToastに変更可）
-    alert(`ベットが完了しました！\n${participant.user.username}に${amount}BCをベットしました。`);
+    // ✅ react-toastify
+    toast.success(
+      <div className="text-lg font-bold text-center">
+        ベットが完了しました
+      </div>,
+      {
+        position: 'top-center',
+        autoClose: 4000,
+        theme: 'colored',
+        icon: <span>✅</span>,
+        className: 'min-h-[80px] flex items-center justify-center text-xl', // ← 全体のサイズ調整
+      }
+    );
     setShowConfirm(false);
     onClose();
   };
