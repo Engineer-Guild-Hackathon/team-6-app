@@ -173,7 +173,7 @@ export default function RaceScreen() {
                         <p className="text-sm text-gray-600">
                           {participant.user.age}歳 {participant.user.occupation}
                         </p>
-                        <div className="flex space-x-2 mt-1">
+                        {/* <div className="flex space-x-2 mt-1">
                           {participant.user.studySubjects.map((subject, idx) => (
                             <span
                               key={idx}
@@ -182,7 +182,7 @@ export default function RaceScreen() {
                               {subject}
                             </span>
                           ))}
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                     <div className="text-right">

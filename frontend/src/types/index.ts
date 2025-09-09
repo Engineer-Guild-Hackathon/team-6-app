@@ -4,13 +4,10 @@ export interface User {
   email: string;
   age: number;
   occupation: string;
-  grade?: string; // 階級 (学生、社会人、etc)
   betCoins: number;
   totalStudyTime: number;
   currentWeekStudyTime: number;
-  studySubjects: string[];
   avatar: string;
-  weeklyRank: number[];
   createdAt: string;
   /** 追加: レース参加関連 */
   inRace?: boolean;            // 参加しているか
@@ -57,11 +54,18 @@ export interface Bet {
 export interface StudySession {
   id: string;
   userId: string;
-  subject: string;
+  subjectId: string;
+  subjectName?: string; // Supbase側でJOINして取得
   duration: number;
   date: string;
   betCoinsEarned: number;
 }
+
+export interface SubjectWithId {
+  id: string;
+  name: string;
+}
+
 
 /** --- 任意: UI表示用のビュー型（Dashboardで使うと便利） --- */
 /** 参加している場合にUIへ渡す情報 */

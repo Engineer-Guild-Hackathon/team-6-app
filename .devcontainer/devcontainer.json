@@ -1,0 +1,70 @@
+{
+  "name": "team-6-app",
+  "dockerComposeFile": "../compose.yml",
+  "service": "frontend",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-python.python",
+        "ms-ceintl.vscode-language-pack-ja",
+        "christian-kohler.path-intellisense",
+        "juggernautjp.less-toml",
+        "oderwat.indent-rainbow",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "ms-toolsai.jupyter",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "PKief.material-icon-theme"
+      ],
+      // VS Code の設定
+      "settings": {
+        // Armチップで上手く起動するための設定
+        "extensions.verifySignature": false,
+        // 自動保存設定をする
+        "files.autoSave": "afterDelay",
+        // ファイル保存時、コードを整形する
+        "editor.formatOnSave": true,
+        // ファイル保存時、同時に行われるアクション
+        "editor.codeActionsOnSave": {},
+        // ファイル保存時、最終行に改行を挿入する
+        "files.insertFinalNewline": true,
+        // ファイル保存時、最終行以降の空行を削除する
+        "files.trimFinalNewlines": true,
+        // ファイル保存時、末尾の空白をトリミングする
+        "files.trimTrailingWhitespace": true,
+        // インデントガイドを表示する
+        "editor.guides.indentation": false,
+        // 括弧（ブラケット）のペアガイドを表示する
+        "editor.guides.bracketPairs": true,
+        // 括弧（ブラケット）の水平方向のペアガイドを表示する
+        "editor.guides.bracketPairsHorizontal": true,
+        // 括弧（ブラケット）のペアごとに色を分ける
+        "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+        // 選択範囲のハイライトに角丸を適用する
+        "editor.roundedSelection": false,
+        // アイコンテーマ
+        "workbench.iconTheme": "material-icon-theme",
+        // ツリーのインデント
+        "workbench.tree.indent": 18,
+        // ツリーのインデントガイドを表示する
+        "workbench.tree.renderIndentGuides": "always",
+        // アニメーションを減らす
+        "workbench.reduceMotion": "on",
+        // 新規ファイル作成時、ヒントメッセージを表示する
+        "workbench.editor.untitled.hint": "hidden",
+        // ワークベンチ内での水平スクロールを有効にする
+        "workbench.list.horizontalScrolling": true,
+        // ペースト時、コードを自動的に整形をする
+        "editor.formatOnPaste": true
+      }
+    }
+  }
+}

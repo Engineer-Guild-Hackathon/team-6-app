@@ -3,17 +3,37 @@ import { Clock, Play, Pause, Square, Plus, Trophy } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
-// NEW: 追加
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
+import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUserId';
+import { StudySession, SubjectWithId } from '../../types';
+import { getStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
 
 export default function StudyTracker() {
   const { user, studySessions, addStudySession } = useAppContext();
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
-  const [subject, setSubject] = useState('');
   const [showNewSubjectInput, setShowNewSubjectInput] = useState(false);
   const [newSubject, setNewSubject] = useState('');
+  // userが選択している科目リスト
+  const [userSubjects, setUserSubjects] = useState<SubjectWithId[]>([]);
+  // 選択中の科目
+  const [selectedSubject, setSelectedSubject] = useState<SubjectWithId | null>(null);
+  // ユーザーの過去の勉強記録
+  const [pastSessions, setPastSessions] = useState<StudySession[]>([]);
+  React.useEffect(() => {
+    if (!user) return;
+
+    async function fetchSubjects() {
+      const subjects = await getStudySubjectsFromUserId(user!.id);
+      setUserSubjects(subjects);
+    }
+    async function fetchPastSessions() {
+      const sessions = await getStudySessionsFromUserId(user!.id);
+      setPastSessions(sessions);
+    }
+    fetchSubjects();
+    fetchPastSessions();
+  }, [user]);
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -26,8 +46,16 @@ export default function StudyTracker() {
   }, [isRunning]);
 
   const handleStart = () => {
-    if (!subject) {
+    if (!userSubjects.length) {
       // CHANGED: alert -> toast.warn
+      toast.warn('勉強科目を選択してください！', {
+        position: 'top-center',
+        autoClose: 3000, //アラートが閉じるまでの時間
+        theme: 'colored',
+      });
+      return;
+    }
+    if(!selectedSubject) {
       toast.warn('勉強科目を選択してください！', {
         position: 'top-center',
         autoClose: 3000, //アラートが閉じるまでの時間
@@ -51,7 +79,7 @@ export default function StudyTracker() {
 
       addStudySession({
         userId: user?.id || '',
-        subject,
+        subjectId: selectedSubject?.id || '',
         duration,
         date: new Date().toISOString(),
         betCoinsEarned,
@@ -78,12 +106,12 @@ export default function StudyTracker() {
 
     setIsRunning(false);
     setTime(0);
-    setSubject('');
+    setSelectedSubject(null);
   };
 
   const handleAddSubject = () => {
     if (newSubject.trim() && user) {
-      setSubject(newSubject);
+      setSelectedSubject({ id: newSubject, name: newSubject });
       setNewSubject('');
       setShowNewSubjectInput(false);
       // OPTIONAL: 追加トースト
@@ -104,9 +132,6 @@ export default function StudyTracker() {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      {/* NEW: ここに置く or App.tsx で全体に1回だけ置く */}
-      <ToastContainer position="top-center" theme="colored" />
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">勉強記録</h1>
         <p className="text-gray-600">時間を計測してベットコインを稼ごう！</p>
@@ -133,15 +158,21 @@ export default function StudyTracker() {
               </label>
               <div className="flex justify-center space-x-2 mb-2">
                 <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
+                  value={selectedSubject?.id || ''}
+                  onChange={(e) => setSelectedSubject(userSubjects.find(sub => sub.id === e.target.value) || null)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   disabled={isRunning}
                 >
                   <option value="">科目を選択</option>
-                  {user.studySubjects.map((sub, index) => (
-                    <option key={index} value={sub}>{sub}</option>
-                  ))}
+                    {userSubjects.length > 0 ? (
+                    userSubjects.map((sub, index) => (
+                      <option key={index} value={sub.id}>
+                      {sub.name}
+                      </option>
+                    ))
+                    ) : (
+                    <option disabled>科目がありません</option>
+                    )}
                 </select>
                 <Button
                   variant="outline"
@@ -219,7 +250,7 @@ export default function StudyTracker() {
             </div>
           ) : (
             <div className="space-y-4">
-              {studySessions.slice(-5).reverse().map((session, index) => (
+              {pastSessions.slice(0,5).map((session) => (
                 <div
                   key={session.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
@@ -229,7 +260,7 @@ export default function StudyTracker() {
                       <Trophy className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{session.subject}</p>
+                      <p className="font-semibold text-gray-900">{session.subjectName}</p>
                       <p className="text-sm text-gray-600">
                         {new Date(session.date).toLocaleDateString('ja-JP')}
                       </p>

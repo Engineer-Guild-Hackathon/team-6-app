@@ -1,35 +1,95 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Coins, Clock, Trophy, Edit2, Save, X } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
+import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUserId';
+import { getAllSubjects } from '../../utils/getAllSubjects';
+import { toast } from 'react-toastify';
 
 export default function ProfileScreen() {
-  const { user, updateUser, studySessions } = useAppContext();
+  const { user, updateUser, studySessions, updateUserSubjects } = useAppContext();
   const [isEditing, setIsEditing] = useState(false);
+  const [allSubjects, setAllSubjects] = useState<string[]>([]);
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [editData, setEditData] = useState({
     username: user?.username || '',
     age: user?.age || 24,
     occupation: user?.occupation || '',
-    studySubjects: user?.studySubjects.join(', ') || '',
+    selectedSubjects: selectedSubjects.join(', ') || '',
+    avatar: user?.avatar || '🎯',
   });
+  // 全科目を取得
+  useEffect(() => {
+    getAllSubjects().then(setAllSubjects);
+  }, []);
+
+  useEffect(() => {
+    if(!user) return;
+    const fetchSubjects = async () => {
+      const subjectsWithId = await getStudySubjectsFromUserId(user.id);
+      setSelectedSubjects(subjectsWithId.map(sub => sub.name));
+    };
+    fetchSubjects();
+  }, [user]);
+
+  // user が変わったら editData を再同期
+  useEffect(() => {
+    if (user) {
+      setEditData({
+        username: user.username,
+        age: user.age,
+        occupation: user.occupation,
+        selectedSubjects: selectedSubjects.join(', '),
+        avatar: user.avatar || '🎯',
+      });
+    }
+  }, [user]);
+
+
+  const toggleSubject = (subject: string) => {
+    if (selectedSubjects.includes(subject)) {
+      setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
+    } else {
+      setSelectedSubjects([...selectedSubjects, subject]);
+    }
+  };
 
   if (!user) return null;
 
-  const handleSave = () => {
-    updateUser({
-      ...editData,
-      studySubjects: editData.studySubjects.split(',').map(s => s.trim()).filter(Boolean),
-    });
+  const handleSave = async () => {
     setIsEditing(false);
+    if(!user) return;
+    updateUser({
+      ...editData
+    });
+    const ok = await updateUserSubjects(selectedSubjects);
+    if(!ok) {
+        toast.warn('科目の更新に失敗しました.デモでは変更できません', {
+          position: 'top-center',
+          autoClose: 3000,
+          theme: 'colored',
+        });
+      const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
+      setSelectedSubjects(refreshedSubjects.map(sub => sub.id));
+      return;
+    }
+    const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
+    setSelectedSubjects(refreshedSubjects.map(sub => sub.id));
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    if (!user) return;
+    // 編集前の状態に戻す
+    // DBから再取得
+    const formerSubjects = await getStudySubjectsFromUserId(user.id);
+
     setEditData({
       username: user.username,
       age: user.age,
       occupation: user.occupation,
-      studySubjects: user.studySubjects.join(', '),
+      selectedSubjects: formerSubjects.join(', '),
+      avatar: user.avatar,
     });
     setIsEditing(false);
   };
@@ -96,9 +156,9 @@ export default function ProfileScreen() {
                       {avatars.map((avatar) => (
                         <button
                           key={avatar}
-                          onClick={() => updateUser({ avatar })}
+                          onClick={() => setEditData(prev => ({ ...prev, avatar }))}
                           className={`text-3xl p-2 rounded-lg border-2 hover:bg-gray-50 ${
-                            user.avatar === avatar 
+                            editData.avatar === avatar 
                               ? 'border-emerald-500 bg-emerald-50' 
                               : 'border-gray-200'
                           }`}
@@ -111,14 +171,14 @@ export default function ProfileScreen() {
                 )}
 
                 <div className="flex items-center space-x-4">
-                  <div className="text-6xl">{user.avatar}</div>
+                  <div className="text-6xl">{editData.avatar}</div>
                   <div>
                     {!isEditing ? (
                       <>
                         <h2 className="text-2xl font-bold text-gray-900">{user.username}</h2>
                         <p className="text-gray-600">{user.age}歳 {user.occupation}</p>
                         <p className="text-sm text-gray-500">
-                          {user.grade} | 参加日: {new Date(user.createdAt).toLocaleDateString('ja-JP')}
+                           参加日: {new Date(user.createdAt).toLocaleDateString('ja-JP')}
                         </p>
                       </>
                     ) : (
@@ -143,6 +203,7 @@ export default function ProfileScreen() {
                             onChange={(e) => setEditData(prev => ({ ...prev, occupation: e.target.value }))}
                             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                           >
+                            {/* TODO: 配列を作ってやる */}
                             <option value="">職業を選択</option>
                             <option value="大学生">大学生</option>
                             <option value="高校生">高校生</option>
@@ -164,7 +225,7 @@ export default function ProfileScreen() {
                   </label>
                   {!isEditing ? (
                     <div className="flex flex-wrap gap-2">
-                      {user.studySubjects.map((subject, index) => (
+                      {selectedSubjects.map((subject, index) => (
                         <span
                           key={index}
                           className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
@@ -174,13 +235,25 @@ export default function ProfileScreen() {
                       ))}
                     </div>
                   ) : (
-                    <input
-                      type="text"
-                      value={editData.studySubjects}
-                      onChange={(e) => setEditData(prev => ({ ...prev, studySubjects: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                      placeholder="TOEIC, 簿記, プログラミング（カンマ区切り）"
-                    />
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {allSubjects.map((subject) => (
+                          <label
+                            key={subject}
+                            className={`cursor-pointer px-3 py-1 border rounded-lg ${selectedSubjects.includes(subject)
+                                ? 'bg-emerald-500 text-white border-emerald-500'
+                                : 'bg-white text-gray-700 border-gray-300'
+                              }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="hidden"
+                              checked={selectedSubjects.includes(subject)}
+                              onChange={() => toggleSubject(subject)}
+                            />
+                            {subject}
+                          </label>
+                        ))}
+                      </div>
                   )}
                 </div>
               </div>

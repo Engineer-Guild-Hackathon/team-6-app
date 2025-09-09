@@ -1,6 +1,7 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import AuthScreen from './components/auth/AuthScreen';
 import Navbar from './components/layout/Navbar';
@@ -71,6 +72,7 @@ export default function App() {
     <AppProvider>
       <BrowserRouter>
         <RoutedAppContent />
+        <ToastContainer position="top-center" theme="colored" />
       </BrowserRouter>
     </AppProvider>
   );

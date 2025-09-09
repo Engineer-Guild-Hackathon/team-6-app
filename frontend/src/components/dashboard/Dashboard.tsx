@@ -18,6 +18,7 @@ export default function Dashboard() {
   const { user, studySessions } = useAppContext();
   if (!user) return null;
 
+  
   const todayStudyTime = studySessions
     .filter((s) => new Date(s.date).toDateString() === new Date().toDateString())
     .reduce((total, s) => total + s.duration, 0);
@@ -41,8 +42,8 @@ export default function Dashboard() {
   const participants = race.participants;
   const me = participants.find((p) => p.user.id === user.id);
 
-  const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
-  const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
+  // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
+  // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
 
   const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
 
@@ -356,7 +357,7 @@ export default function Dashboard() {
                   </ul>
                 </Link>
 
-                {/* 右：ポイント合計（従来デザインのまま） */}
+                {/* 右：ポイント合計（従来デザインのまま）
                 <div className="rounded-xl border border-gray-100 p-4">
                   <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
                   <div className="text-sm text-gray-700 space-y-1">
@@ -366,14 +367,14 @@ export default function Dashboard() {
                     </div>
                     <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Study Subjects */}
+      {/* Study Subjects
       <Card className="mt-8 rounded-2xl border border-gray-100 shadow-sm">
         <CardHeader> 
           <CardTitle>勉強科目</CardTitle> 
@@ -383,7 +384,7 @@ export default function Dashboard() {
         ))} 
           </div> 
         </CardContent> 
-      </Card>
+      </Card> */}
     </div>
   );
 }

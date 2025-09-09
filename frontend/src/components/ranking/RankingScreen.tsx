@@ -143,7 +143,7 @@ export default function RankingScreen() {
                       <p className="text-sm text-gray-600">
                         {rankUser.age}歳 {rankUser.occupation}
                       </p>
-                      <div className="flex space-x-2 mt-1">
+                      {/* <div className="flex space-x-2 mt-1">
                         {rankUser.studySubjects.slice(0, 3).map((subject, idx) => (
                           <span
                             key={idx}
@@ -152,7 +152,7 @@ export default function RankingScreen() {
                             {subject}
                           </span>
                         ))}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                   <div className="text-right">
