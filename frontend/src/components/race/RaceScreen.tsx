@@ -389,9 +389,9 @@ const formatRacePeriod = (start?: string|number|Date, end?: string|number|Date) 
                   {formatRacePeriod((currentRace as any).startAt, (currentRace as any).endAt)}
                 </span>
               </span>
-              <span className="text-amber-700">
+              <span className="font-bold text-lg text-amber-700">
                 💰 あなたの保有ベットコイン:
-                <span className="font-bold ml-1">{user.betCoins.toLocaleString()} BC</span>
+                <span className="font-bold ml-1 text-xl">{user.betCoins.toLocaleString()} BC</span>
               </span>
             </div>
 
@@ -429,21 +429,14 @@ const formatRacePeriod = (start?: string|number|Date, end?: string|number|Date) 
                           </div>
                         </div>
 
-                        {/* 学習時間と進捗バー */}
-                        <div className="mt-3">
-                          <div className="text-xl font-extrabold text-emerald-600">
-                            {p.currentStudyTime}時間
-                          </div>
-                          <div className="mt-1 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-                            <div
-                              className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                              style={{ width: `${progress * 100}%` }}
-                            />
-                          </div>
-                          <div className="mt-1 text-[11px] text-gray-500">
-                            先頭比 {Math.round(progress * 100)}%
-                          </div>
+                        {/* 学習時間*/}
+                        <div className="mt-3 flex items-baseline justify-between" >
+                          <span className="text-lg font-semibold text-gray-700">先週の学習時間</span>
+                            <span className="text-3xl font-extrabold text-emerald-600">
+                              {p.currentStudyTime}時間
+                            </span>
                         </div>
+
 
                         {/* オッズとベットボタン */}
                         <div className="mt-3 flex items-center justify-between">
