@@ -91,7 +91,7 @@ export default function StudyTracker() {
           autoClose: 3500,
           theme: 'colored',
           // icon を少しリッチに
-          icon: '🏁',
+          icon: <span>🏁</span>,
         }
       );
     } else {
