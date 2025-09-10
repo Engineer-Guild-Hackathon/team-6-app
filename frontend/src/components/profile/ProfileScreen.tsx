@@ -191,6 +191,10 @@ export default function ProfileScreen() {
                           <p className="text-gray-600">
                             {user.age}歳 {user.occupation}
                           </p>
+                          <p className="text-gray-700">
+                            今週の目標：{Math.floor((user.currentWeekStudyGoal ?? 0) / 60)}時間
+                            {(user.currentWeekStudyGoal ?? 0) % 60}分
+                          </p>
                         </>
                       ) : (
                         <div className="space-y-3">

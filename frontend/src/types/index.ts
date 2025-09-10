@@ -7,6 +7,7 @@ export interface User {
   betCoins: number;
   totalStudyTime: number;
   currentWeekStudyTime: number;
+  currentWeekStudyGoal: number;
   avatar: string;
   createdAt: string;
   /** 追加: レース参加関連 */
