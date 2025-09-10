@@ -57,6 +57,7 @@ export interface StudySession {
   subjectId: string;
   subjectName?: string; // Supbase側でJOINして取得
   duration: number;
+  comment?: string;
   date: string;
   betCoinsEarned: number;
 }

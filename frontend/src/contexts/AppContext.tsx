@@ -159,36 +159,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addStudySession = async (session: Omit<StudySession, 'id'>) => {
     if(!state.user) return;
-    const newSession: StudySession = {
-      ...session,
-      id: Math.random().toString(36).substr(2, 9),
-    };
-    dispatch({ type: 'ADD_STUDY_SESSION', payload: newSession });
-    
-    // Supabaseに保存
-    const { error } = await supabase
-      .from('study_sessions')
-      .insert({
-        user_id: state.user.id,
-        subject_id: session.subjectId,
-        duration: session.duration,
-        date: session.date,
-        bet_coins_earned: session.betCoinsEarned,
-      })
-      .select()
-      .single();
+    try {
+      // RPC 呼び出し
+      // 勉強セッションを追加，トランザクション追加，ユーザーの勉強時間とベットコインも更新してくれるRPC
+      const { error } = await supabase.rpc('add_study_session_transaction', {
+        p_user_id: state.user.id,
+        p_subject_id: session.subjectId,
+        p_duration: session.duration,
+        p_bet_coins_earned: session.betCoinsEarned,
+        p_comment: session.comment || '',
+        p_date: session.date,
+      });
 
-    if (error) {
-      console.error('Error adding study session:', error.message);
-      // 必要であればローカル state から削除するなどのフォールバック
-      return;
+      if (error) {
+        console.error('Error adding study session via RPC:', error.message);
+        return;
+      }
+
+      // 成功したらローカル state にも反映
+      const newSession: StudySession = {
+        ...session,
+        id: Math.random().toString(36).substr(2, 9),
+      };
+      dispatch({ type: 'ADD_STUDY_SESSION', payload: newSession });
+
+    } catch (err) {
+      console.error('Unexpected error adding study session:', err);
     }
-    // ユーザーのベットコインと勉強時間を更新
-    await updateUser({
-      betCoins: state.user.betCoins + session.betCoinsEarned,
-      totalStudyTime: state.user.totalStudyTime + session.duration,
-      currentWeekStudyTime: state.user.currentWeekStudyTime + session.duration,
-    });
   };
 
   const placeBet = (bet: Omit<Bet, 'id'>) => {
