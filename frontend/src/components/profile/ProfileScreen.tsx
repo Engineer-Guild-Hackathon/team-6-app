@@ -170,53 +170,87 @@ export default function ProfileScreen() {
                   </div>
                 )}
 
-                <div className="flex items-center space-x-4">
-                  <div className="text-6xl">{editData.avatar}</div>
-                  <div>
-                    {!isEditing ? (
-                      <>
-                        <h2 className="text-2xl font-bold text-gray-900">{user.username}</h2>
-                        <p className="text-gray-600">{user.age}歳 {user.occupation}</p>
-                        <p className="text-sm text-gray-500">
-                           参加日: {new Date(user.createdAt).toLocaleDateString('ja-JP')}
-                        </p>
-                      </>
-                    ) : (
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={editData.username}
-                          onChange={(e) => setEditData(prev => ({ ...prev, username: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                          placeholder="ユーザー名"
-                        />
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            type="number"
-                            value={editData.age}
-                            onChange={(e) => setEditData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                            placeholder="年齢"
-                          />
-                          <select
-                            value={editData.occupation}
-                            onChange={(e) => setEditData(prev => ({ ...prev, occupation: e.target.value }))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                          >
-                            {/* TODO: 配列を作ってやる */}
-                            <option value="">職業を選択</option>
-                            <option value="大学生">大学生</option>
-                            <option value="高校生">高校生</option>
-                            <option value="会社員">会社員</option>
-                            <option value="エンジニア">エンジニア</option>
-                            <option value="教師">教師</option>
-                            <option value="その他">その他</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+  <div className="flex items-center space-x-4">
+    {/* アバターを白背景＋角丸ボックスで囲む */}
+    <div className="bg-white rounded-xl p-4 shadow-inner flex items-center justify-center border border-gray-300">
+      <div className="text-6xl">{editData.avatar}</div>
+    </div>
+
+    <div className="flex-1">
+      {!isEditing ? (
+        <>
+          <h2 className="text-2xl font-bold text-gray-900">{user.username}</h2>
+          <p className="text-gray-600">
+            {user.age}歳 {user.occupation}
+          </p>
+          {/* <p className="text-sm text-gray-500">
+            参加日: {new Date(user.createdAt).toLocaleDateString('ja-JP')}
+          </p> */}
+        </>
+      ) : (
+        <div className="space-y-3">
+          {/* 名前 */}
+          <div className="flex items-center space-x-2">
+            <label className="w-16 text-base font-bold text-gray-700">
+              名前：
+            </label>
+            <input
+              type="text"
+              value={editData.username}
+              onChange={(e) =>
+                setEditData((prev) => ({ ...prev, username: e.target.value }))
+              }
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              placeholder="ユーザー名"
+            />
+          </div>
+
+          {/* 年齢 */}
+          <div className="flex items-center space-x-2">
+            <label className="w-16 text-base font-bold text-gray-700">
+              年齢：
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={120}
+              value={editData.age}
+              onChange={(e) =>
+                setEditData((prev) => ({ ...prev, age: Number(e.target.value) }))
+              }
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              placeholder="年齢"
+            />
+          </div>
+
+          {/* 職業 */}
+          <div className="flex items-center space-x-2">
+            <label className="w-16 text-base font-bold text-gray-700">
+              職業：
+            </label>
+            <select
+              value={editData.occupation}
+              onChange={(e) =>
+                setEditData((prev) => ({ ...prev, occupation: e.target.value }))
+              }
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="">職業を選択</option>
+              <option value="大学生">大学生</option>
+              <option value="高校生">高校生</option>
+              <option value="会社員">会社員</option>
+              <option value="エンジニア">エンジニア</option>
+              <option value="教師">教師</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
 
                 {/* Study Subjects */}
                 <div>
