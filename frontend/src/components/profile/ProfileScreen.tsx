@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Coins, Clock, Trophy, Edit2, Save, X } from 'lucide-react';
+import { User, Coins, Clock, Trophy, Edit2, Save, X ,Book} from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
@@ -18,7 +18,24 @@ export default function ProfileScreen() {
     occupation: user?.occupation || '',
     selectedSubjects: selectedSubjects.join(', ') || '',
     avatar: user?.avatar || '🎯',
+    currentWeekStudyGoal: user?.currentWeekStudyGoal ?? 0, //
   });
+
+// 週目標（分）→ 時/分の文字列に分解して編集用に保持
+const [goalHoursStr, setGoalHoursStr] = useState(
+  String(Math.floor((user?.currentWeekStudyGoal ?? 0) / 60))
+);
+const [goalMinutesStr, setGoalMinutesStr] = useState(
+  String((user?.currentWeekStudyGoal ?? 0) % 60)
+);
+
+// editData や user が変わったら同期
+useEffect(() => {
+  const total = editData.currentWeekStudyGoal ?? user?.currentWeekStudyGoal ?? 0;
+  setGoalHoursStr(String(Math.floor(total / 60)));
+  setGoalMinutesStr(String(total % 60));
+}, [editData.currentWeekStudyGoal, user]);
+
 
   // 全科目を取得
   useEffect(() => {
@@ -43,6 +60,7 @@ export default function ProfileScreen() {
         occupation: user.occupation,
         selectedSubjects: selectedSubjects.join(', '),
         avatar: user.avatar || '🎯',
+        currentWeekStudyGoal: user.currentWeekStudyGoal ?? 0,
       });
     }
   }, [user]);
@@ -60,8 +78,9 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     setIsEditing(false);
     if (!user) return;
-    updateUser({
+    await updateUser({
       ...editData,
+      currentWeekStudyGoal: editData.currentWeekStudyGoal,
     });
     const ok = await updateUserSubjects(selectedSubjects);
     if (!ok) {
@@ -87,6 +106,7 @@ export default function ProfileScreen() {
       occupation: user.occupation,
       selectedSubjects: formerSubjects.join(', '),
       avatar: user.avatar,
+      currentWeekStudyGoal: user.currentWeekStudyGoal ?? 0, 
     });
     setIsEditing(false);
   };
@@ -262,50 +282,106 @@ export default function ProfileScreen() {
                               <option value="その他">その他</option>
                             </select>
                           </div>
+                                
+
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
+              {/* 今週の目標（緑枠の外／編集時のみ表示） */}
+              {isEditing && (
+                <div className="mt-6 flex items-center flex-wrap gap-3 justify-center">
+                  <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">
+                    今週の目標：
+                  </span>
+                  {/* 時間 */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={goalHoursStr}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+                        setGoalHoursStr(v);
+                        const h = parseInt(v || '0', 10);
+                        const m = parseInt(goalMinutesStr || '0', 10);
+                        setEditData(prev => ({ ...prev, currentWeekStudyGoal: h * 60 + m }));
+                      }}
+                      onBlur={() => { if (goalHoursStr === '') setGoalHoursStr('0'); }}
+                      className="w-20 h-10 text-center px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">時間</span>
+                  </div>
+
+                  {/* 分 */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={goalMinutesStr}
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+                        const n = Math.min(59, Math.max(0, parseInt(v || '0', 10)));
+                        v = String(n);
+                        setGoalMinutesStr(v);
+                        const h = parseInt(goalHoursStr || '0', 10);
+                        setEditData(prev => ({ ...prev, currentWeekStudyGoal: h * 60 + n }));
+                      }}
+                      onBlur={() => { if (goalMinutesStr === '') setGoalMinutesStr('0'); }}
+                      className="w-20 h-10 text-center px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">分</span>
+                  </div>
+                </div>
+              )}
+
                 {/* Study Subjects */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    勉強科目
-                  </label>
-                  {!isEditing ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSubjects.map((subject, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
-                        >
-                          {subject}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {allSubjects.map((subject) => (
-                        <label
-                          key={subject}
-                          className={`cursor-pointer px-3 py-1 border rounded-lg ${
-                            selectedSubjects.includes(subject)
-                              ? 'bg-emerald-500 text-white border-emerald-500'
-                              : 'bg-white text-gray-700 border-gray-300'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="hidden"
-                            checked={selectedSubjects.includes(subject)}
-                            onChange={() => toggleSubject(subject)}
-                          />
-                          {subject}
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                <div className="pt-6">
+                  <div className="flex items-center gap-2">
+                    <Book className="h-5 w-5 text-emerald-600 shrink-0" aria-hidden="true" />
+                    <span className="text-lg font-semibold leading-none tracking-tight text-gray-900">
+                      勉強科目
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSubjects.map((subject, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
+                          >
+                            {subject}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {allSubjects.map((subject) => (
+                          <label
+                            key={subject}
+                            className={`cursor-pointer px-3 py-1 border rounded-lg ${
+                              selectedSubjects.includes(subject)
+                                ? "bg-emerald-500 text-white border-emerald-500"
+                                : "bg-white text-gray-700 border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="hidden"
+                              checked={selectedSubjects.includes(subject)}
+                              onChange={() => toggleSubject(subject)}
+                            />
+                            {subject}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
