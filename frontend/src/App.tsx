@@ -1,7 +1,7 @@
-// App.tsx
-import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import AuthScreen from './components/auth/AuthScreen';
 import Navbar from './components/layout/Navbar';
@@ -11,9 +11,6 @@ import RaceScreen from './components/race/RaceScreen';
 import RankingScreen from './components/ranking/RankingScreen';
 import ProfileScreen from './components/profile/ProfileScreen';
 
-// ✅ 追加：toastify（コンテナはアプリ全体に1回だけ）
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 function RoutedAppContent() {
   const { isAuthenticated } = useAppContext();

@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
-import { Coins, Trophy, Crown, Medal, Award, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Coins, Trophy, Crown, Medal, Award, TrendingUp, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
-import { mockUsers } from '../../utils/mockData';
+import { getUsersByBetCoins, getUsersByStudyTime } from '../../utils/getRankings';
 
 export default function RankingScreen() {
   const { user } = useAppContext();
   const [selectedTab, setSelectedTab] = useState<'coins' | 'study'>('coins');
+  const [sortedUsers, setSortedUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Sort users by bet coins or study time
-  const sortedUsers = [...mockUsers, user].filter(Boolean).sort((a, b) => {
-    if (selectedTab === 'coins') {
-      return (b?.betCoins || 0) - (a?.betCoins || 0);
-    } else {
-      return (b?.totalStudyTime || 0) - (a?.totalStudyTime || 0);
+  // 初回ロード
+  useEffect(() => {
+    fetchRankings();
+  }, [selectedTab]);
+
+  const fetchRankings = async () => {
+    setLoading(true);
+    try {
+      const data =
+        selectedTab === 'coins'
+          ? await getUsersByBetCoins()
+          : await getUsersByStudyTime();
+      setSortedUsers(data || []);
+    } catch (err) {
+      console.error('ランキング取得エラー:', err);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -50,11 +63,20 @@ export default function RankingScreen() {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">🏆 ランキング</h1>
-        <p className="text-gray-600">最強の勉強家は誰だ？</p>
+      <div className='flex items-center justify-between'>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">🏆 ランキング</h1>
+          <p className="text-gray-600">最強の{selectedTab === 'coins' ? 'ギャンプラー' : '勉強家'}は誰だ？</p>
+        </div>
+        <button
+          onClick={fetchRankings}
+          disabled={loading}
+          className="flex items-center px-4 py-2 rounded-lg border  hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw className={`h-5 w-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          更新
+        </button>
       </div>
-
       {/* Tab Navigation */}
       <div className="flex space-x-4 mb-6">
         <button
@@ -105,7 +127,7 @@ export default function RankingScreen() {
               <p className="text-gray-600">
                 {selectedTab === 'coins' 
                   ? `${user.betCoins.toLocaleString()} BC`
-                  : `${user.totalStudyTime}時間`
+                  : `${Math.floor(user.totalStudyTime / 60)}時間${user.totalStudyTime % 60}分`
                 }
               </p>
             </div>
@@ -143,16 +165,6 @@ export default function RankingScreen() {
                       <p className="text-sm text-gray-600">
                         {rankUser.age}歳 {rankUser.occupation}
                       </p>
-                      <div className="flex space-x-2 mt-1">
-                        {rankUser.studySubjects.slice(0, 3).map((subject, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full"
-                          >
-                            {subject}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -166,9 +178,8 @@ export default function RankingScreen() {
                     ) : (
                       <div>
                         <p className="text-xl font-bold text-emerald-600">
-                          {rankUser.totalStudyTime}
+                          {Math.floor(rankUser.totalStudyTime / 60)}時間{rankUser.totalStudyTime % 60}分
                         </p>
-                        <p className="text-sm text-gray-600">時間</p>
                       </div>
                     )}
                   </div>
@@ -182,7 +193,7 @@ export default function RankingScreen() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="pt-6 text-center">
             <Trophy className="h-8 w-8 text-amber-600 mx-auto mb-2" />
             <p className="text-sm text-gray-600">総参加者数</p>
             <p className="text-2xl font-bold text-gray-900">{sortedUsers.length}人</p>
@@ -190,7 +201,7 @@ export default function RankingScreen() {
         </Card>
         
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="pt-6 text-center">
             <Coins className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <p className="text-sm text-gray-600">総ベットコイン</p>
             <p className="text-2xl font-bold text-gray-900">
@@ -200,11 +211,11 @@ export default function RankingScreen() {
         </Card>
         
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="pt-6 text-center">
             <TrendingUp className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
             <p className="text-sm text-gray-600">総勉強時間</p>
             <p className="text-2xl font-bold text-gray-900">
-              {sortedUsers.reduce((sum, u) => sum + (u?.totalStudyTime || 0), 0)}時間
+              {Math.floor(sortedUsers.reduce((sum, u) => sum + (u?.totalStudyTime || 0), 0) / 60)}時間
             </p>
           </CardContent>
         </Card>

@@ -4,9 +4,11 @@ import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
 import { getCurrentUser } from '../../utils/mockData';
+import { supabase } from '../../supabaseClient';
+import { getUserFromUserId } from '../../utils/getUserFromUserId';
 
 export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [hasAccount, setHasAccount] = useState(true);
   const { login } = useAppContext();
   const [formData, setFormData] = useState({
     username: '',
@@ -14,14 +16,83 @@ export default function AuthScreen() {
     password: '',
     age: '',
     occupation: '',
-    studySubjects: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleInputChange = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in real app, this would call an API
-    const user = getCurrentUser();
-    login(user);
+    if(hasAccount) {
+      handleLogin();
+    } else {
+      handleSignUp();
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
+    if (error) {
+      setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+    if (!data.user) {
+      setMessage('ユーザー情報の取得に失敗しました');
+      setLoading(false);
+      return;
+    }
+    setMessage('ログイン成功！');
+    setLoading(false);
+    const user = await getUserFromUserId(data.user.id);
+    if (user) {
+      login(user);
+    } else {
+      setMessage('ユーザー情報の取得に失敗しました');
+      return;
+    }
+  }
+
+  const handleSignUp = async () => {
+    setLoading(true);
+    const {data, error} = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+    });
+    if (error) {
+      setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+    if (!data.user) {
+      setMessage('ユーザー情報の取得に失敗しました');
+      setLoading(false);
+      return;
+    }
+    // usersテーブルにも追加
+    const { error: tableError } = await supabase.from('users').insert([{
+      id: data.user.id,
+      email: formData.email,
+      username: formData.username,
+      age: formData.age ? parseInt(formData.age) : null,
+      occupation: formData.occupation,
+      }]);
+    if (tableError) {
+      setMessage(tableError.message);
+      setLoading(false);
+      return;
+    }
+    setMessage('登録成功！Supabaseで確認せよ');
+    setLoading(false);
+    setHasAccount(true);
+
   };
 
   const handleDemoLogin = () => {
@@ -34,19 +105,19 @@ export default function AuthScreen() {
       <div className="max-w-4xl w-full space-y-8">
         {/* Hero Section */}
         <div className="text-center">
-          <div className="text-6xl font-bold text-emerald-600 mb-4">🎯 StudyBet</div>
+          <div className="text-6xl font-bold text-emerald-600 mb-4">🎯 Study Derby</div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             勉強時間で競馬をしよう！
           </h1>
           <p className="text-xl text-gray-600 mb-8">
             勉強するほどベットコインを獲得。毎週のレースでギャンブルを楽しもう！
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div className="text-center">
               <Clock className="h-12 w-12 text-emerald-600 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-gray-900">勉強記録</h3>
-              <p className="text-gray-600">1時間 = 100ベットコイン</p>
+              <p className="text-gray-600">100分 = 100ベットコイン</p>
             </div>
             <div className="text-center">
               <Trophy className="h-12 w-12 text-amber-600 mx-auto mb-3" />
@@ -66,24 +137,14 @@ export default function AuthScreen() {
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
-                {isLogin ? 'ログイン' : 'アカウント作成'}
+                {hasAccount ? 'ログイン' : 'アカウント作成'}
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {message && (
+                <div className="mb-4 text-red-600 text-center">{message}</div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ユーザー名
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="yamada_taro"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     メールアドレス
@@ -97,9 +158,21 @@ export default function AuthScreen() {
                   />
                 </div>
 
-                {!isLogin && (
+                {!hasAccount && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          ユーザー名
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.username}
+                          onChange={(e) => handleInputChange('username', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                          placeholder="yamada_taro"
+                        />
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           年齢
@@ -107,7 +180,7 @@ export default function AuthScreen() {
                         <input
                           type="number"
                           value={formData.age}
-                          onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
+                          onChange={(e) => handleInputChange('age', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                           placeholder="24"
                         />
@@ -118,7 +191,7 @@ export default function AuthScreen() {
                         </label>
                         <select
                           value={formData.occupation}
-                          onChange={(e) => setFormData(prev => ({ ...prev, occupation: e.target.value }))}
+                          onChange={(e) => handleInputChange('occupation', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         >
                           <option value="">選択してください</option>
@@ -130,19 +203,6 @@ export default function AuthScreen() {
                           <option value="その他">その他</option>
                         </select>
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        勉強科目（カンマ区切り）
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.studySubjects}
-                        onChange={(e) => setFormData(prev => ({ ...prev, studySubjects: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                        placeholder="TOEIC, 簿記, プログラミング"
-                      />
                     </div>
                   </>
                 )}
@@ -160,14 +220,14 @@ export default function AuthScreen() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">
-                  {isLogin ? 'ログイン' : 'アカウント作成'}
+                <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                  {loading ? '処理中...' : hasAccount ? 'ログイン' : 'アカウント作成'}
                 </Button>
 
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full" 
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
                   onClick={handleDemoLogin}
                 >
                   デモで始める
@@ -176,10 +236,10 @@ export default function AuthScreen() {
 
               <div className="mt-6 text-center">
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => setHasAccount(!hasAccount)}
                   className="text-emerald-600 hover:text-emerald-700 font-medium"
                 >
-                  {isLogin ? 'アカウントを作成' : 'ログインに戻る'}
+                  {hasAccount ? 'アカウントを作成' : 'ログインに戻る'}
                 </button>
               </div>
             </CardContent>

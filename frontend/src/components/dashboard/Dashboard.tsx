@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Clock, Coins, TrendingUp, Target, Trophy, Calendar } from 'lucide-react';
 import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
+import { StudySession } from '../../types';
+import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
 
 // 参加していない時の暫定ポイント換算
 const rankToPoints = (rank: number) => {
@@ -16,11 +19,23 @@ const rankToPoints = (rank: number) => {
 
 export default function Dashboard() {
   const { user, studySessions } = useAppContext();
+  const [todayStudySessions, setTodayStudySessions] = useState<StudySession[]>([]);
+  const [todayStudyTime, setTodayStudyTime] = useState(0);
+
   if (!user) return null;
 
-  const todayStudyTime = studySessions
-    .filter((s) => new Date(s.date).toDateString() === new Date().toDateString())
-    .reduce((total, s) => total + s.duration, 0);
+  useEffect(() => {
+    // 今日の勉強記録を抽出
+    const fetchTodayStudySessions = async () => {
+      const todayStudySessions = await getTodayStudySessionsFromUserId(user.id);
+      setTodayStudySessions(todayStudySessions);
+
+      // 今日の勉強時間を計算
+      const totalToday = todayStudySessions.reduce((sum, session) => sum + session.duration, 0);
+      setTodayStudyTime(totalToday);
+    };
+    fetchTodayStudySessions();
+  }, [user]);
 
   const MAX_DAILY = 10;
   const base = { mon: 4, tue: 6, wed: 3, thu: 5, fri: 7, sat: 2 };
@@ -41,8 +56,8 @@ export default function Dashboard() {
   const participants = race.participants;
   const me = participants.find((p) => p.user.id === user.id);
 
-  const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
-  const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
+  // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
+  // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
 
   const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
 
@@ -70,24 +85,24 @@ export default function Dashboard() {
 
         <Card className="h-full rounded-2xl shadow-md border border-gray-100">
           <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
-            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
-              <Clock className="h-7 w-7 text-emerald-500" />
-            </div>
-            <p className="text-sm md:text-base text-gray-600">今週の勉強時間</p>
-            <p className="text-2xl md:text-3xl font-bold text-emerald-600 mt-0.5 md:mt-1">
-              {(user.currentWeekStudyTime ?? 0).toLocaleString('ja-JP')}時間
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-blue-50 mb-2 sm:mb-3">
               <TrendingUp className="h-7 w-7 text-blue-500" />
             </div>
             <p className="text-sm md:text-base text-gray-600">総勉強時間</p>
             <p className="text-2xl md:text-3xl font-bold text-blue-600 mt-0.5 md:mt-1">
-              {(user.totalStudyTime ?? 0).toLocaleString('ja-JP')}時間
+              {(Math.floor(user.totalStudyTime / 60) ?? 0).toLocaleString('ja-JP')}時間
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card className="h-full rounded-2xl shadow-md border border-gray-100">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+            <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
+              <Clock className="h-7 w-7 text-emerald-500" />
+            </div>
+            <p className="text-sm md:text-base text-gray-600">今週の勉強時間</p>
+            <p className="text-2xl md:text-3xl font-bold text-emerald-600 mt-0.5 md:mt-1">
+              {(Math.floor(user.currentWeekStudyTime / 60) ?? 0).toLocaleString('ja-JP')}時間
             </p>
           </CardContent>
         </Card>
@@ -356,7 +371,7 @@ export default function Dashboard() {
                   </ul>
                 </Link>
 
-                {/* 右：ポイント合計（従来デザインのまま） */}
+                {/* 右：ポイント合計（従来デザインのまま）
                 <div className="rounded-xl border border-gray-100 p-4">
                   <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
                   <div className="text-sm text-gray-700 space-y-1">
@@ -366,14 +381,14 @@ export default function Dashboard() {
                     </div>
                     <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Study Subjects */}
+      {/* Study Subjects
       <Card className="mt-8 rounded-2xl border border-gray-100 shadow-sm">
         <CardHeader> 
           <CardTitle>勉強科目</CardTitle> 
@@ -383,7 +398,7 @@ export default function Dashboard() {
         ))} 
           </div> 
         </CardContent> 
-      </Card>
+      </Card> */}
     </div>
   );
 }
