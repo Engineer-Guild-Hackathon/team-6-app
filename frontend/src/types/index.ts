@@ -91,3 +91,14 @@ export interface RaceViewOut {
 }
 
 export type RaceView = RaceViewIn | RaceViewOut;
+
+// ランキング画面用
+export interface UserRanking {
+  id: string;
+  avatar: string;
+  username: string;
+  age: number;
+  occupation: string;
+  betCoins: number;
+  totalStudyTime: number;
+};
