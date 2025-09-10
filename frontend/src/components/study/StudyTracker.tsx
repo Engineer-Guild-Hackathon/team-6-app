@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { Clock, Play, Pause, Square, Plus, Trophy } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -20,7 +20,7 @@ export default function StudyTracker() {
   const [selectedSubject, setSelectedSubject] = useState<SubjectWithId | null>(null);
   // ユーザーの過去の勉強記録
   const [pastSessions, setPastSessions] = useState<StudySession[]>([]);
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) return;
 
     async function fetchSubjects() {
@@ -35,7 +35,7 @@ export default function StudyTracker() {
     fetchPastSessions();
   }, [user]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRunning) {
       interval = setInterval(() => {
@@ -72,22 +72,20 @@ export default function StudyTracker() {
 
   const handleStop = () => {
     if (time > 0) {
-      const hours = Math.floor(time / 3600);
-      const minutes = Math.floor((time % 3600) / 60);
-      const duration = hours + minutes / 60;
-      const betCoinsEarned = Math.floor(duration * 100);
-
+      const minutes = Math.floor(time / 60);
+      const betCoinsEarned = minutes; // 1分ごとに1ベットコイン
+      const duration = minutes; // 時間は分単位で保存
       addStudySession({
         userId: user?.id || '',
         subjectId: selectedSubject?.id || '',
         duration,
         date: new Date().toISOString(),
-        betCoinsEarned,
+        betCoinsEarned: betCoinsEarned,
       });
 
       // CHANGED: alert -> toast.success
       toast.info(
-        `お疲れ様でした！\n${Math.floor(duration * 100) / 100}時間勉強して${betCoinsEarned}ベットコインを獲得しました！`,
+        `お疲れ様でした！\n${Math.floor(duration/60)}時間${duration%60}分勉強して${betCoinsEarned}ベットコインを獲得しました！`,
         {
           position: 'top-center',
           autoClose: 3500,
@@ -227,7 +225,7 @@ export default function StudyTracker() {
               <div className="mt-6 p-4 bg-amber-50 rounded-lg">
                 <p className="text-amber-800">
                   💰 現在の獲得予定: <span className="font-bold">
-                    {Math.floor((time / 3600) * 100)} ベットコイン
+                    {Math.floor((time / 60))} ベットコイン
                   </span>
                 </p>
               </div>
@@ -268,7 +266,7 @@ export default function StudyTracker() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      {Math.floor(session.duration * 100) / 100}時間
+                      {Math.floor(session.duration / 60)}時間{session.duration % 60}分
                     </p>
                     <p className="text-sm text-amber-600">
                       +{session.betCoinsEarned} BC

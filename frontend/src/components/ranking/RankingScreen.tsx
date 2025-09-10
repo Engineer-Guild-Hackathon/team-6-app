@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Coins, Trophy, Crown, Medal, Award, TrendingUp, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
-import { mockUsers } from '../../utils/mockData';
 import { getUsersByBetCoins, getUsersByStudyTime } from '../../utils/getRankings';
 
 export default function RankingScreen() {
@@ -128,7 +127,7 @@ export default function RankingScreen() {
               <p className="text-gray-600">
                 {selectedTab === 'coins' 
                   ? `${user.betCoins.toLocaleString()} BC`
-                  : `${user.totalStudyTime}時間`
+                  : `${Math.floor(user.totalStudyTime / 60)}時間${user.totalStudyTime % 60}分`
                 }
               </p>
             </div>
@@ -166,16 +165,6 @@ export default function RankingScreen() {
                       <p className="text-sm text-gray-600">
                         {rankUser.age}歳 {rankUser.occupation}
                       </p>
-                      {/* <div className="flex space-x-2 mt-1">
-                        {rankUser.studySubjects.slice(0, 3).map((subject, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full"
-                          >
-                            {subject}
-                          </span>
-                        ))}
-                      </div> */}
                     </div>
                   </div>
                   <div className="text-right">
@@ -189,9 +178,8 @@ export default function RankingScreen() {
                     ) : (
                       <div>
                         <p className="text-xl font-bold text-emerald-600">
-                          {rankUser.totalStudyTime}
+                          {Math.floor(rankUser.totalStudyTime / 60)}時間{rankUser.totalStudyTime % 60}分
                         </p>
-                        <p className="text-sm text-gray-600">時間</p>
                       </div>
                     )}
                   </div>
@@ -227,7 +215,7 @@ export default function RankingScreen() {
             <TrendingUp className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
             <p className="text-sm text-gray-600">総勉強時間</p>
             <p className="text-2xl font-bold text-gray-900">
-              {sortedUsers.reduce((sum, u) => sum + (u?.totalStudyTime || 0), 0)}時間
+              {Math.floor(sortedUsers.reduce((sum, u) => sum + (u?.totalStudyTime || 0), 0) / 60)}時間
             </p>
           </CardContent>
         </Card>

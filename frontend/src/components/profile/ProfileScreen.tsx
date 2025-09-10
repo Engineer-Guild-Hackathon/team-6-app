@@ -308,7 +308,7 @@ export default function ProfileScreen() {
                 <Clock className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
                 <p className="text-sm text-emerald-700">総勉強時間</p>
                 <p className="text-2xl font-bold text-emerald-800">
-                  {user.totalStudyTime}時間
+                  {Math.floor(user.totalStudyTime / 60)}時間
                 </p>
               </div>
 
@@ -316,7 +316,7 @@ export default function ProfileScreen() {
                 <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-blue-700">今週の勉強時間</p>
                 <p className="text-2xl font-bold text-blue-800">
-                  {user.currentWeekStudyTime}時間
+                  {Math.floor(user.currentWeekStudyTime / 60)}時間
                 </p>
               </div>
             </CardContent>
