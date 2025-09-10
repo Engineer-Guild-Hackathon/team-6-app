@@ -4,8 +4,7 @@ import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
 // NEW: 追加
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 
 export default function StudyTracker() {
   const { user, studySessions, addStudySession } = useAppContext();
@@ -65,7 +64,7 @@ export default function StudyTracker() {
           autoClose: 3500,
           theme: 'colored',
           // icon を少しリッチに
-          icon: '🏁',
+          icon: <span>🏁</span>,
         }
       );
     } else {
@@ -104,9 +103,6 @@ export default function StudyTracker() {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      {/* NEW: ここに置く or App.tsx で全体に1回だけ置く */}
-      <ToastContainer position="top-center" theme="colored" />
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">勉強記録</h1>
         <p className="text-gray-600">時間を計測してベットコインを稼ごう！</p>
