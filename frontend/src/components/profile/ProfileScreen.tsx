@@ -71,11 +71,11 @@ export default function ProfileScreen() {
           theme: 'colored',
         });
       const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
-      setSelectedSubjects(refreshedSubjects.map(sub => sub.id));
+      setSelectedSubjects(refreshedSubjects.map(sub => sub.name));
       return;
     }
     const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
-    setSelectedSubjects(refreshedSubjects.map(sub => sub.id));
+    setSelectedSubjects(refreshedSubjects.map(sub => sub.name));
   };
 
   const handleCancel = async () => {
