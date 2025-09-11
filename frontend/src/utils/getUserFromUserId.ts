@@ -23,6 +23,7 @@ export async function getUserFromUserId(userId: string): Promise<User | null> {
     betCoins: data.bet_coins,
     totalStudyTime: data.total_study_time,
     currentWeekStudyTime: data.current_week_study_time,
+    currentWeekStudyGoal: data.current_week_study_goal ?? 0, 
     avatar: data.avatar,
     createdAt: data.created_at,
     inRace: false, // これはアプリ側ロジックで設定

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Coins, Clock, Trophy, Edit2, Save, X } from 'lucide-react';
+import { User, Coins, Clock, Edit2, Save, X, Book, ChevronLeft, ChevronRight } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
@@ -18,22 +18,70 @@ export default function ProfileScreen() {
     occupation: user?.occupation || '',
     selectedSubjects: selectedSubjects.join(', ') || '',
     avatar: user?.avatar || '🎯',
+    currentWeekStudyGoal: user?.currentWeekStudyGoal ?? 0,
   });
-  // 全科目を取得
+
+  // ===== 月送り用 =====
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-11
+  const gotoToday = () => {
+    const d = new Date();
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  };
+  const nextMonth = () => {
+    setViewMonth((m) => {
+      const nm = m + 1;
+      if (nm > 11) {
+        setViewYear((y) => y + 1);
+        return 0;
+      }
+      return nm;
+    });
+  };
+  const prevMonth = () => {
+    setViewMonth((m) => {
+      const pm = m - 1;
+      if (pm < 0) {
+        setViewYear((y) => y - 1);
+        return 11;
+      }
+      return pm;
+    });
+  };
+
+  // 週目標（分）→ 時/分の文字列
+  const [goalHoursStr, setGoalHoursStr] = useState(
+    String(Math.floor((user?.currentWeekStudyGoal ?? 0) / 60))
+  );
+  const [goalMinutesStr, setGoalMinutesStr] = useState(
+    String((user?.currentWeekStudyGoal ?? 0) % 60)
+  );
+
+  // editData や user が変わったら同期
+  useEffect(() => {
+    const total = editData.currentWeekStudyGoal ?? user?.currentWeekStudyGoal ?? 0;
+    setGoalHoursStr(String(Math.floor(total / 60)));
+    setGoalMinutesStr(String(total % 60));
+  }, [editData.currentWeekStudyGoal, user]);
+
+  // 全科目
   useEffect(() => {
     getAllSubjects().then(setAllSubjects);
   }, []);
 
+  // ユーザー科目
   useEffect(() => {
-    if(!user) return;
+    if (!user) return;
     const fetchSubjects = async () => {
       const subjectsWithId = await getStudySubjectsFromUserId(user.id);
-      setSelectedSubjects(subjectsWithId.map(sub => sub.name));
+      setSelectedSubjects(subjectsWithId.map((sub) => sub.name));
     };
     fetchSubjects();
   }, [user]);
 
-  // user が変わったら editData を再同期
+  // user 変更で editData 再同期
   useEffect(() => {
     if (user) {
       setEditData({
@@ -42,81 +90,105 @@ export default function ProfileScreen() {
         occupation: user.occupation,
         selectedSubjects: selectedSubjects.join(', '),
         avatar: user.avatar || '🎯',
+        currentWeekStudyGoal: user.currentWeekStudyGoal ?? 0,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-
   const toggleSubject = (subject: string) => {
-    if (selectedSubjects.includes(subject)) {
-      setSelectedSubjects(selectedSubjects.filter(s => s !== subject));
-    } else {
-      setSelectedSubjects([...selectedSubjects, subject]);
-    }
+    setSelectedSubjects((prev) =>
+      prev.includes(subject) ? prev.filter((s) => s !== subject) : [...prev, subject]
+    );
   };
 
   if (!user) return null;
 
   const handleSave = async () => {
     setIsEditing(false);
-    if(!user) return;
-    updateUser({
-      ...editData
-    });
+    await updateUser({ ...editData, currentWeekStudyGoal: editData.currentWeekStudyGoal });
     const ok = await updateUserSubjects(selectedSubjects);
-    if(!ok) {
-        toast.warn('科目の更新に失敗しました.デモでは変更できません', {
-          position: 'top-center',
-          autoClose: 3000,
-          theme: 'colored',
-        });
+    if (!ok) {
+      toast.warn('科目の更新に失敗しました.デモでは変更できません', {
+        position: 'top-center',
+        autoClose: 3000,
+        theme: 'colored',
+      });
       const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
-      setSelectedSubjects(refreshedSubjects.map(sub => sub.name));
+      setSelectedSubjects(refreshedSubjects.map((sub) => sub.name));
       return;
     }
     const refreshedSubjects = await getStudySubjectsFromUserId(user.id);
-    setSelectedSubjects(refreshedSubjects.map(sub => sub.name));
+    setSelectedSubjects(refreshedSubjects.map((sub) => sub.name));
   };
 
   const handleCancel = async () => {
     if (!user) return;
-    // 編集前の状態に戻す
-    // DBから再取得
     const formerSubjects = await getStudySubjectsFromUserId(user.id);
-
     setEditData({
       username: user.username,
       age: user.age,
       occupation: user.occupation,
       selectedSubjects: formerSubjects.join(', '),
       avatar: user.avatar,
+      currentWeekStudyGoal: user.currentWeekStudyGoal ?? 0,
     });
     setIsEditing(false);
   };
 
-  const weeklyData = Array(7).fill(0).map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    const dayStudyTime = studySessions
-      .filter(session => new Date(session.date).toDateString() === date.toDateString())
-      .reduce((total, session) => total + session.duration, 0);
-    return {
-      day: ['日', '月', '火', '水', '木', '金', '土'][date.getDay()],
-      hours: dayStudyTime,
-    };
+  // ====== 今月のカレンダー用データ（週開始：月曜） ======
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay = new Date(viewYear, viewMonth + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startOffset = (firstDay.getDay() + 6) % 7; // 0:月, 1:火, ... 6:日
+
+  const toKey = (d: Date | string) => {
+    const dt = new Date(d);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
+  // ビュー月の各日の合計勉強時間(分)
+  const studyByDay: Record<string, number> = {};
+  studySessions.forEach((s: { date: string | Date; duration: number }) => {
+    const k = toKey(s.date);
+    const dt = new Date(k);
+    if (dt.getFullYear() === viewYear && dt.getMonth() === viewMonth) {
+      studyByDay[k] = (studyByDay[k] || 0) + s.duration;
+    }
   });
+
+  const totalCells = startOffset + daysInMonth;
+  const weeks = Math.ceil(totalCells / 7);
+  const cells: Array<{ day?: number; key: string; studied: boolean; minutes: number; isToday: boolean }> = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const dayNum = i - startOffset + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) {
+      cells.push({ key: `empty-${i}`, studied: false, minutes: 0, isToday: false });
+    } else {
+      const dateKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const minutes = studyByDay[dateKey] || 0;
+      const isToday =
+        viewYear === today.getFullYear() &&
+        viewMonth === today.getMonth() &&
+        dayNum === today.getDate();
+      cells.push({ day: dayNum, key: dateKey, studied: minutes > 0, minutes, isToday });
+    }
+  }
 
   const avatars = ['🧑‍💼', '👩‍🎓', '👨‍💻', '👸', '👨‍🏫', '🎯', '📚', '💪', '🌟', '🚀'];
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">👤 プロフィール</h1>
         <p className="text-gray-600">あなたの情報と統計を確認・編集できます</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Profile Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* 基本情報（左2列） */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -146,21 +218,17 @@ export default function ProfileScreen() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Avatar Selection */}
+                {/* アバター選択（編集時のみ） */}
                 {isEditing && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      アバター
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">アバター</label>
                     <div className="grid grid-cols-5 gap-2">
                       {avatars.map((avatar) => (
                         <button
                           key={avatar}
-                          onClick={() => setEditData(prev => ({ ...prev, avatar }))}
+                          onClick={() => setEditData((prev) => ({ ...prev, avatar }))}
                           className={`text-3xl p-2 rounded-lg border-2 hover:bg-gray-50 ${
-                            editData.avatar === avatar 
-                              ? 'border-emerald-500 bg-emerald-50' 
-                              : 'border-gray-200'
+                            editData.avatar === avatar ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
                           }`}
                         >
                           {avatar}
@@ -170,79 +238,145 @@ export default function ProfileScreen() {
                   </div>
                 )}
 
-                <div className="flex items-center space-x-4">
-                  <div className="text-6xl">{editData.avatar}</div>
-                  <div>
-                    {!isEditing ? (
-                      <>
-                        <h2 className="text-2xl font-bold text-gray-900">{user.username}</h2>
-                        <p className="text-gray-600">{user.age}歳 {user.occupation}</p>
-                        <p className="text-sm text-gray-500">
-                           参加日: {new Date(user.createdAt).toLocaleDateString('ja-JP')}
-                        </p>
-                      </>
-                    ) : (
-                      <div className="space-y-3">
-                        <input
-                          type="text"
-                          value={editData.username}
-                          onChange={(e) => setEditData(prev => ({ ...prev, username: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                          placeholder="ユーザー名"
-                        />
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            type="number"
-                            value={editData.age}
-                            onChange={(e) => setEditData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                            placeholder="年齢"
-                          />
-                          <select
-                            value={editData.occupation}
-                            onChange={(e) => setEditData(prev => ({ ...prev, occupation: e.target.value }))}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                          >
-                            {/* TODO: 配列を作ってやる */}
-                            <option value="">職業を選択</option>
-                            <option value="大学生">大学生</option>
-                            <option value="高校生">高校生</option>
-                            <option value="会社員">会社員</option>
-                            <option value="エンジニア">エンジニア</option>
-                            <option value="教師">教師</option>
-                            <option value="その他">その他</option>
-                          </select>
+                {/* 会員証風カード */}
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-white rounded-xl p-4 shadow-inner flex items-center justify-center border border-gray-300">
+                      <div className="text-6xl">{editData.avatar}</div>
+                    </div>
+
+                    <div className="flex-1">
+                      {!isEditing ? (
+                        <>
+                          <h2 className="text-2xl font-bold text-gray-900">{user.username}</h2>
+                          <p className="text-gray-600">{user.age}歳 {user.occupation}</p>
+                          <p className="text-gray-700">
+                            今週の目標：{Math.floor((user.currentWeekStudyGoal ?? 0) / 60)}時間
+                            {(user.currentWeekStudyGoal ?? 0) % 60}分
+                          </p>
+                        </>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* 名前 */}
+                          <div className="flex items-center space-x-2">
+                            <label className="w-16 text-base font-bold text-gray-700">名前：</label>
+                            <input
+                              type="text"
+                              value={editData.username}
+                              onChange={(e) => setEditData((prev) => ({ ...prev, username: e.target.value }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                              placeholder="ユーザー名"
+                            />
+                          </div>
+
+                          {/* 年齢 */}
+                          <div className="flex items-center space-x-2">
+                            <label className="w-16 text-base font-bold text-gray-700">年齢：</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={120}
+                              value={editData.age}
+                              onChange={(e) =>
+                                setEditData((prev) => ({ ...prev, age: Number(e.target.value) }))
+                              }
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                              placeholder="年齢"
+                            />
+                          </div>
+
+                          {/* 職業 */}
+                          <div className="flex items-center space-x-2">
+                            <label className="w-16 text-base font-bold text-gray-700">職業：</label>
+                            <select
+                              value={editData.occupation}
+                              onChange={(e) => setEditData((prev) => ({ ...prev, occupation: e.target.value }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                            >
+                              <option value="">職業を選択</option>
+                              <option value="大学生">大学生</option>
+                              <option value="高校生">高校生</option>
+                              <option value="会社員">会社員</option>
+                              <option value="エンジニア">エンジニア</option>
+                              <option value="教師">教師</option>
+                              <option value="その他">その他</option>
+                            </select>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Study Subjects */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    勉強科目
-                  </label>
-                  {!isEditing ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedSubjects.map((subject, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
-                        >
-                          {subject}
-                        </span>
-                      ))}
+                {/* 今週の目標（編集時のみ） */}
+                {isEditing && (
+                  <div className="mt-6 flex items-center flex-wrap gap-3 justify-center">
+                    <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">今週の目標：</span>
+                    {/* 時間 */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={goalHoursStr}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+                          setGoalHoursStr(v);
+                          const h = parseInt(v || '0', 10);
+                          const m = parseInt(goalMinutesStr || '0', 10);
+                          setEditData((prev) => ({ ...prev, currentWeekStudyGoal: h * 60 + m }));
+                        }}
+                        onBlur={() => { if (goalHoursStr === '') setGoalHoursStr('0'); }}
+                        className="w-20 h-10 text-center px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">時間</span>
                     </div>
-                  ) : (
+                    {/* 分 */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={goalMinutesStr}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
+                          const n = Math.min(59, Math.max(0, parseInt(v || '0', 10)));
+                          v = String(n);
+                          setGoalMinutesStr(v);
+                          const h = parseInt(goalHoursStr || '0', 10);
+                          setEditData((prev) => ({ ...prev, currentWeekStudyGoal: h * 60 + n }));
+                        }}
+                        onBlur={() => { if (goalMinutesStr === '') setGoalMinutesStr('0'); }}
+                        className="w-20 h-10 text-center px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <span className="text-lg font-semibold text-gray-700 whitespace-nowrap">分</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 勉強科目 */}
+                <div className="pt-6">
+                  <div className="flex items-center gap-2">
+                    <Book className="h-5 w-5 text-emerald-600 shrink-0" aria-hidden="true" />
+                    <span className="text-lg font-semibold leading-none tracking-tight text-gray-900">勉強科目</span>
+                  </div>
+                  <div className="mt-3">
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSubjects.map((subject, index) => (
+                          <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
+                            {subject}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {allSubjects.map((subject) => (
                           <label
                             key={subject}
-                            className={`cursor-pointer px-3 py-1 border rounded-lg ${selectedSubjects.includes(subject)
-                                ? 'bg-emerald-500 text-white border-emerald-500'
-                                : 'bg-white text-gray-700 border-gray-300'
-                              }`}
+                            className={`cursor-pointer px-3 py-1 border rounded-lg ${
+                              selectedSubjects.includes(subject) ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-700 border-gray-300'
+                            }`}
                           >
                             <input
                               type="checkbox"
@@ -254,103 +388,113 @@ export default function ProfileScreen() {
                           </label>
                         ))}
                       </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Weekly Progress */}
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>今週の勉強記録</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {weeklyData.map((day, index) => (
-                  <div key={index} className="flex items-center space-x-4">
-                    <div className="w-8 text-sm font-medium text-gray-700">{day.day}</div>
-                    <div className="flex-1">
-                      <div className="bg-gray-200 rounded-full h-4 relative overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min((day.hours / 8) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-16 text-sm font-medium text-right">
-                      {Math.floor(day.hours * 100) / 100}h
-                    </div>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Stats Sidebar */}
-        <div className="space-y-6">
-          {/* Current Stats */}
+        {/* 統計情報（右2列） */}
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>統計情報</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center p-4 bg-amber-50 rounded-lg">
-                <Coins className="h-8 w-8 text-amber-600 mx-auto mb-2" />
-                <p className="text-sm text-amber-700">保有ベットコイン</p>
-                <p className="text-2xl font-bold text-amber-800">
-                  {user.betCoins.toLocaleString()}
-                </p>
-              </div>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                {/* 保有ベットコイン */}
+                <div className="text-center p-4 bg-amber-50 rounded-lg">
+                  <Coins className="h-8 w-8 text-amber-600 mx-auto mb-2" />
+                  <p className="text-sm text-amber-700">保有ベットコイン</p>
+                  <p className="text-2xl font-bold text-amber-800">{user.betCoins.toLocaleString()}</p>
+                </div>
 
-              <div className="text-center p-4 bg-emerald-50 rounded-lg">
-                <Clock className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-                <p className="text-sm text-emerald-700">総勉強時間</p>
-                <p className="text-2xl font-bold text-emerald-800">
-                  {Math.floor(user.totalStudyTime / 60)}時間
-                </p>
-              </div>
+                {/* 総勉強時間 */}
+                <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                  <Clock className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
+                  <p className="text-sm text-emerald-700">総勉強時間</p>
+                  <p className="text-2xl font-bold text-emerald-800">{Math.floor(user.totalStudyTime / 60)}時間</p>
+                </div>
 
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-blue-700">今週の勉強時間</p>
-                <p className="text-2xl font-bold text-blue-800">
-                  {Math.floor(user.currentWeekStudyTime / 60)}時間
-                </p>
+                {/* 今週の勉強時間 */}
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Clock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <p className="text-sm text-blue-700">今週の勉強時間</p>
+                  <p className="text-2xl font-bold text-blue-800">{Math.floor(user.currentWeekStudyTime / 60)}時間</p>
+                </div>
+
+                {/* 今月のベット額 */}
+                <div className="text-center p-4 bg-pink-50 rounded-lg">
+                  <Coins className="h-8 w-8 text-pink-600 mx-auto mb-2" />
+                  <p className="text-sm text-pink-700">今月のベット額</p>
+                  <p className="text-2xl font-bold text-pink-800">{(user.currentMonthBet ?? 0).toLocaleString()}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Recent Achievements */}
+        {/* 今月の勉強カレンダー（全幅） */}
+        <div className="lg:col-span-4 ">
           <Card>
             <CardHeader>
-              <CardTitle>最近の実績</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>今月の勉強カレンダー（{viewYear}年 {viewMonth + 1}月）</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={prevMonth} aria-label="前の月へ">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={gotoToday}>今日へ</Button>
+                  <Button variant="outline" size="sm" onClick={nextMonth} aria-label="次の月へ">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 p-2 bg-yellow-50 rounded-lg">
-                  <div className="text-2xl">🏆</div>
-                  <div>
-                    <p className="text-sm font-semibold">初回ベット達成</p>
-                    <p className="text-xs text-gray-600">初めてベットをしました</p>
-                  </div>
-                </div>
+              {/* 曜日ヘッダー（月→日） */}
+              <div className="grid grid-cols-7 text-center text-sm font-semibold text-gray-600 mb-3 md:mb-4">
+                {['月', '火', '水', '木', '金', '土', '日'].map((w) => (
+                  <div key={w} className="py-2">{w}</div>
+                ))}
+              </div>
 
-                <div className="flex items-center space-x-3 p-2 bg-green-50 rounded-lg">
-                  <div className="text-2xl">📚</div>
-                  <div>
-                    <p className="text-sm font-semibold">継続学習者</p>
-                    <p className="text-xs text-gray-600">5日連続で勉強しました</p>
-                  </div>
-                </div>
+              {/* 日付セル（横長＋縦拡大） */}
+              <div className="grid grid-cols-7 gap-2 md:gap-3 lg:gap-4">
+                {cells.map((c, idx) => {
+                  if (!c.day) {
+                    return <div key={c.key ?? `empty-${idx}`} className="h-28 md:h-32 lg:h-40 rounded-lg border border-transparent" />;
+                  }
+                  const studied = c.studied;
+                  const minutes = c.minutes;
+                  const hoursText = minutes > 0 ? `${(minutes / 60).toFixed(1)}h` : '';
 
-                <div className="flex items-center space-x-3 p-2 bg-purple-50 rounded-lg">
-                  <div className="text-2xl">⏰</div>
-                  <div>
-                    <p className="text-sm font-semibold">長時間学習</p>
-                    <p className="text-xs text-gray-600">一日5時間以上勉強しました</p>
-                  </div>
+                  return (
+                    <div
+                      key={c.key}
+                      className={`h-28 md:h-32 lg:h-40 rounded-lg border p-2 md:p-3 flex flex-col justify-between ${
+                        studied ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-gray-200'
+                      } ${c.isToday ? 'ring-2 ring-emerald-500' : ''}`}
+                      title={studied ? `${(minutes/60).toFixed(2)} 時間` : '勉強なし'}
+                    >
+                      <div className="text-sm md:text-base font-semibold text-gray-800">{c.day}</div>
+                      {studied && <div className="text-xs md:text-sm font-medium text-emerald-800 self-end">{hoursText}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 凡例 */}
+              <div className="mt-4 md:mt-6 flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200" />
+                  <span>勉強した日</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded ring-2 ring-emerald-500" />
+                  <span>今日</span>
                 </div>
               </div>
             </CardContent>

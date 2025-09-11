@@ -120,6 +120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         bet_coins: updates.betCoins,
         total_study_time: updates.totalStudyTime,
         current_week_study_time: updates.currentWeekStudyTime,
+        current_week_study_goal: updates.currentWeekStudyGoal, 
         avatar: updates.avatar,
       })
       .eq('id', state.user.id)
@@ -131,7 +132,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    dispatch({ type: 'UPDATE_USER', payload: data });
+    // Supabase 更新の成功後、最後の dispatch をこれに差し替え
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== undefined)
+    );
+    dispatch({ type: 'UPDATE_USER', payload: cleanUpdates });
     
   };
 
