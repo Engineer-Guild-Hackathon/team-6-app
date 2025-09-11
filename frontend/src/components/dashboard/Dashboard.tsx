@@ -206,7 +206,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="h-full rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text中心 justify-between">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center tex-center justify-between">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
               <Clock className="h-7 w-7 text-emerald-500" />
             </div>
@@ -224,7 +224,7 @@ export default function Dashboard() {
             </div>
             <p className="text-sm md:text-base text-gray-600">今日の勉強</p>
             <p className="text-2xl md:text-3xl font-bold text-purple-600 mt-0.5 md:mt-1">
-              {todayStudyTime.toLocaleString('ja-JP')}時間
+              {(Math.floor(todayStudyTime / 60)).toLocaleString('ja-JP')}時間
             </p>
           </CardContent>
         </Card>
@@ -413,10 +413,10 @@ export default function Dashboard() {
                             <li
                               key={p.user.id}
                               className={[
-                                'flex items-center justify-between rounded-lg border',
-                                'border-gray-100 bg-white px-3 py-2.5',
-                                isMe ? 'ring-1 ring-emerald-200/60' : '',
-                              ].join(' ')}
+                                "flex items-center justify-between rounded-lg border",
+                                "border-gray-100 bg-white px-3 py-2.5",
+                                isMe ? "ring-1 ring-emerald-200/60" : "",
+                              ].join(" ")}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className="w-8 text-right tabular-nums text-gray-500">

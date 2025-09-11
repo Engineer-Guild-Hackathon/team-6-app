@@ -69,13 +69,10 @@ export async function getStudySessionsFromUserId(userId: string): Promise<StudyS
     id: item.id,
     userId: item.user_id,
     subjectId: item.subject_id,
-    subjectName: item.subjects?.name ?? '',
-    duration: typeof item.duration === 'number' ? item.duration : Number(item.duration ?? 0),
+    subjectName: item.subjects?.name || '',
+    duration: item.duration,
     date: item.date,
-    betCoinsEarned:
-      typeof item.bet_coins_earned === 'number'
-        ? item.bet_coins_earned
-        : Number(item.bet_coins_earned ?? 0),
+    betCoinsEarned:item.bet_coins_earned
   }));
 }
 
@@ -116,11 +113,8 @@ export async function getRecentStudySessionsFromUserId(
     userId: item.user_id,
     subjectId: item.subject_id,
     subjectName: item.subjects?.name ?? '',
-    duration: typeof item.duration === 'number' ? item.duration : Number(item.duration ?? 0),
+    duration:item.duration,
     date: item.date,
-    betCoinsEarned:
-      typeof item.bet_coins_earned === 'number'
-        ? item.bet_coins_earned
-        : Number(item.bet_coins_earned ?? 0),
+    betCoinsEarned:item.bet_coins_earned,
   }));
 }
