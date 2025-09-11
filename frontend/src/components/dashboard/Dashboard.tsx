@@ -21,8 +21,31 @@ const rankToPoints = (rank: number) => {
 // 小数1桁に四捨五入して文字列化（例: 1.24 -> "1.2", 1.25 -> "1.3"）
 const formatHours = (h: number) => (Math.round(h * 10) / 10).toFixed(1);
 
+// 今週（日曜23:59:59.999 ローカル）の終了日時
+const getThisWeekEndLocal = () => {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysUntilSun = (7 - now.getDay()) % 7; // 0=Sun ... 6=Sat
+  end.setDate(end.getDate() + daysUntilSun);
+  // 日曜の“最後の瞬間”まで含める（23:59:59.999）
+  end.setHours(23, 59, 59, 999);
+  return end;
+};
+
+// 残りミリ秒を「X日 Y時間 Z分」に整形（負なら 0 でクリップ）
+const formatRemaining = (ms: number) => {
+  const remain = Math.max(0, ms);
+  const totalMinutes = Math.floor(remain / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  return `${days}日 ${hours}時間 ${minutes}分`;
+};
+
+
 export default function Dashboard() {
   const { user, studySessions } = useAppContext();
+  const [remainingText, setRemainingText] = useState<string>('');
   const [todayStudySessions, setTodayStudySessions] = useState<StudySession[]>([]);
   const [todayStudyTime, setTodayStudyTime] = useState(0);
 
@@ -65,8 +88,21 @@ export default function Dashboard() {
     })();
   }, [user]);
 
+  // 残り時間を毎秒更新（リロード不要）
+  useEffect(() => {
+    const update = () => {
+      const end = getThisWeekEndLocal();
+      const now = new Date();
+      setRemainingText(formatRemaining(end.getTime() - now.getTime()));
+    };
+    update(); // 初期表示
+    const id = setInterval(update, 1000); // 毎秒更新
+    return () => clearInterval(id);
+  }, []);
+
+
   // 棒グラフ表示用
-  const MAX_DAILY = 10;
+  const MAX_DAILY = 6; // 6時間勉強すれば緑で棒グラフが満たされる
   const weeklyProgress = [
     { day: '月', hours: weekDayHours.mon },
     { day: '火', hours: weekDayHours.tue },
@@ -287,7 +323,7 @@ export default function Dashboard() {
             <div className="text-center py-4">
               <div className="text-5xl mb-2">🏇</div>
               <h3 className="font-semibold">{race.week}</h3>
-              <p className="text-gray-600">残り時間: 3日 12時間</p>
+              <p className="text-gray-600">残り時間: {remainingText}</p>
             </div>
 
             {user.inRace && me ? (
