@@ -56,10 +56,23 @@ export default function Dashboard() {
   const participants = race.participants;
   const me = participants.find((p) => p.user.id === user.id);
 
+  // 週間目標の今週の目標と今週の勉強時間
+  // ▼ 週目標（分）と現在の今週学習（分）
+  const weeklyGoalMinutes = user.currentWeekStudyGoal ?? 2400; // 40h = 2400分 フォールバック
+  const currentWeekMinutes = user.currentWeekStudyTime ?? 0;
+
+  // ▼ 表示用: 分 → 「時間・分」に分解
+  const toHM = (mins: number) => {
+    const t = Math.max(0, Math.round(mins)); // 念のため丸め & マイナス防止
+    return { h: Math.floor(t / 60), m: t % 60 };
+  };
+  const goalHM = toHM(weeklyGoalMinutes);
+  const curHM  = toHM(currentWeekMinutes);
+
+
+
   // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
   // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
-
-  const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -203,16 +216,17 @@ export default function Dashboard() {
 
             {/* 週間目標（透明感ある色分岐） */}
             <div className="mt-4 bg-emerald-50 p-3 rounded-lg">
-              💡 週間目標: 40時間 (現在: {user.currentWeekStudyTime}時間)
+                💡 週間目標: {goalHM.h}時間{goalHM.m}分 (現在: {curHM.h}時間{curHM.m}分)
               <div className="mt-2 bg-gray-200 h-2 rounded-full">
                 {(() => {
-                  const progress = (user.currentWeekStudyTime ?? 0) / 40;
+                  // 進捗は「分 ÷ 分」で安全に計算
+                  const safeGoal = weeklyGoalMinutes > 0 ? weeklyGoalMinutes : 1;
+                  const progress = (user.currentWeekStudyTime ?? 0) / safeGoal;
+
                   let barColor = 'bg-emerald-500/70'; // デフォ：緑（透過）
-                  if (progress < 0.3) {
-                    barColor = 'bg-red-500/70'; // 30%未満 → 赤（透過）
-                  } else if (progress < 0.6) {
-                    barColor = 'bg-yellow-500/70'; // 60%未満 → 黄（透過）
-                  }
+                  if (progress < 0.3) barColor = 'bg-red-500/70';      // 30%未満 → 赤
+                  else if (progress < 0.6) barColor = 'bg-yellow-500/70'; // 60%未満 → 黄
+
                   return (
                     <div
                       className={`${barColor} h-2 rounded-full transition-[width] duration-500`}
