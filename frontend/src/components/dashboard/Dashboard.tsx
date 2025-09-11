@@ -6,6 +6,7 @@ import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
 import { StudySession } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
+import { getStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
 
 // 参加していない時の暫定ポイント換算
 const rankToPoints = (rank: number) => {
@@ -17,10 +18,18 @@ const rankToPoints = (rank: number) => {
   return 10;
 };
 
+// 小数1桁に四捨五入して文字列化（例: 1.24 -> "1.2", 1.25 -> "1.3"）
+const formatHours = (h: number) => (Math.round(h * 10) / 10).toFixed(1);
+
 export default function Dashboard() {
   const { user, studySessions } = useAppContext();
   const [todayStudySessions, setTodayStudySessions] = useState<StudySession[]>([]);
   const [todayStudyTime, setTodayStudyTime] = useState(0);
+
+  // 曜日別の合計時間（h）
+  const [weekDayHours, setWeekDayHours] = useState({
+    mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0,
+  });
 
   if (!user) return null;
 
@@ -30,38 +39,53 @@ export default function Dashboard() {
       const todayStudySessions = await getTodayStudySessionsFromUserId(user.id);
       setTodayStudySessions(todayStudySessions);
 
-      // 今日の勉強時間を計算
-      const totalToday = todayStudySessions.reduce((sum, session) => sum + session.duration, 0);
+      // duration は分保存なので /60 して時間に
+      const totalToday = todayStudySessions.reduce((sum, session) => sum + session.duration, 0) / 60;
       setTodayStudyTime(totalToday);
     };
     fetchTodayStudySessions();
   }, [user]);
 
-  const MAX_DAILY = 10;
-  const base = { mon: 4, tue: 6, wed: 3, thu: 5, fri: 7, sat: 2 };
-  const sumMonToSat = base.mon + base.tue + base.wed + base.thu + base.fri + base.sat;
-  const sundayHours = Math.max(0, (user.currentWeekStudyTime ?? 0) - sumMonToSat);
+  // 今週(月→来週月)のセッションを取得して曜日別に合計
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const sessions = await getStudySessionsFromUserId(user.id);
+      const acc = { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 };
 
+      for (const s of sessions) {
+        const dt = new Date(s.date);              // timestamptz
+        const day = dt.getDay();                  // 0=Sun ... 6=Sat
+        const key = (['sun','mon','tue','wed','thu','fri','sat'] as const)[day];
+        // duration は分保存なので /60 して時間に
+        const hours = (Number(s.duration) || 0) / 60;
+        acc[key] += hours;
+      }
+      setWeekDayHours(acc);
+    })();
+  }, [user]);
+
+  // 棒グラフ表示用
+  const MAX_DAILY = 10;
   const weeklyProgress = [
-    { day: '月', hours: base.mon },
-    { day: '火', hours: base.tue },
-    { day: '水', hours: base.wed },
-    { day: '木', hours: base.thu },
-    { day: '金', hours: base.fri },
-    { day: '土', hours: base.sat },
-    { day: '日', hours: sundayHours },
+    { day: '月', hours: weekDayHours.mon },
+    { day: '火', hours: weekDayHours.tue },
+    { day: '水', hours: weekDayHours.wed },
+    { day: '木', hours: weekDayHours.thu },
+    { day: '金', hours: weekDayHours.fri },
+    { day: '土', hours: weekDayHours.sat },
+    { day: '日', hours: weekDayHours.sun },
   ];
 
   const race = generateMockRace(user.inRace ? user : undefined);
   const participants = race.participants;
   const me = participants.find((p) => p.user.id === user.id);
 
-  // 週間目標の今週の目標と今週の勉強時間
-  // ▼ 週目標（分）と現在の今週学習（分）
+  // 週間目標（DBは分保存）
   const weeklyGoalMinutes = user.currentWeekStudyGoal ?? 2400; // 40h = 2400分 フォールバック
   const currentWeekMinutes = user.currentWeekStudyTime ?? 0;
 
-  // ▼ 表示用: 分 → 「時間・分」に分解
+  // 表示用: 分 → 「時間・分」に分解
   const toHM = (mins: number) => {
     const t = Math.max(0, Math.round(mins)); // 念のため丸め & マイナス防止
     return { h: Math.floor(t / 60), m: t % 60 };
@@ -69,10 +93,10 @@ export default function Dashboard() {
   const goalHM = toHM(weeklyGoalMinutes);
   const curHM  = toHM(currentWeekMinutes);
 
-
-
   // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
   // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
+
+  const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -171,7 +195,7 @@ export default function Dashboard() {
                     ];
 
               return (
-                <div className="mb-5 rounded-xl border border-gray-100 p-4">
+                <div className="mb-6 rounded-xl border border-gray-100 p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-900">昨日の学習</p>
                     <span className="text-xs text-gray-500">
@@ -198,8 +222,8 @@ export default function Dashboard() {
               );
             })()}
 
-            {/* 縦棒グラフ（既存） */}
-            <div className="flex items-end justify-between h-40 px-2">
+            {/* 縦棒グラフ（てっぺんが食い込まないよう mt-4 で余白） */}
+            <div className="mt-4 flex items-end justify-between h-40 px-2">
               {weeklyProgress.map((d) => (
                 <div key={d.day} className="flex flex-col items-center flex-1 mx-1">
                   <div className="w-6 h-32 bg-gray-200 rounded-t-lg flex items-end">
@@ -209,24 +233,26 @@ export default function Dashboard() {
                     />
                   </div>
                   <div className="mt-2 text-sm">{d.day}</div>
-                  <div className="text-xs text-gray-500">{d.hours}時間</div>
+                  <div className="text-xs text-gray-500">{formatHours(d.hours)}時間</div>
                 </div>
               ))}
             </div>
 
             {/* 週間目標（透明感ある色分岐） */}
             <div className="mt-4 bg-emerald-50 p-3 rounded-lg">
-                💡 週間目標: {goalHM.h}時間{goalHM.m}分 (現在: {curHM.h}時間{curHM.m}分)
+              💡 週間目標: {goalHM.h}時間{goalHM.m}分 (現在: {curHM.h}時間{curHM.m}分)
               <div className="mt-2 bg-gray-200 h-2 rounded-full">
                 {(() => {
                   // 進捗は「分 ÷ 分」で安全に計算
                   const safeGoal = weeklyGoalMinutes > 0 ? weeklyGoalMinutes : 1;
-                  const progress = (user.currentWeekStudyTime ?? 0) / safeGoal;
+                  const progress = currentWeekMinutes / safeGoal;
 
                   let barColor = 'bg-emerald-500/70'; // デフォ：緑（透過）
-                  if (progress < 0.3) barColor = 'bg-red-500/70';      // 30%未満 → 赤
-                  else if (progress < 0.6) barColor = 'bg-yellow-500/70'; // 60%未満 → 黄
-
+                  if (progress < 0.3) {
+                    barColor = 'bg-red-500/70'; // 30%未満 → 赤（透過）
+                  } else if (progress < 0.6) {
+                    barColor = 'bg-yellow-500/70'; // 60%未満 → 黄（透過）
+                  }
                   return (
                     <div
                       className={`${barColor} h-2 rounded-full transition-[width] duration-500`}
