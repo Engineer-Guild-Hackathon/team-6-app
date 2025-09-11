@@ -15,16 +15,25 @@ export interface User {
   raceId?: string | null;      // 参加しているレースのID（未参加なら null/undefined）
 }
 
-export type RaceStatus = 'upcoming' | 'active' | 'finished';
+export type RaceStatus = 'upcoming' | 'active' | 'finished' | 'drawing';
 
 export interface Race {
   id: string;
-  week: string;
+  name: string;
   status: RaceStatus;
-  startDate: string;  // ISO文字列
-  endDate: string;    // ISO文字列
-  participants: RaceParticipant[];
+  raceStartDate: string;  // ISO文字列
+  raceEndDate: string;    // ISO文字列
+  participants?: RaceParticipant[]; // DBにはない
   totalPot: number;   // 賞金プール(BC)
+  firstPrize: number; // 1位賞金(BC)
+  secondPrize: number;// 2位賞金(BC)
+  thirdPrize: number; // 3位賞金(BC)
+  drawingStartDate: string; // 抽選開始日時(ISO文字列)
+  drawingEndDate: string;   // 抽選終了日時(ISO文字列)
+  updatedAt: string; // ISO文字列
+  createdAt: string; // ISO文字列
+  minAge?: number; // 参加最低年齢, 条件指定に用いる
+  maxAge?: number; // 参加最高年齢
 }
 
 export interface RaceParticipant {
@@ -40,15 +49,16 @@ export interface RaceParticipant {
     place: number;
   };
 }
+// ベットの種類(単勝，複勝，応援馬券(単勝と複勝の1:1配分))
+export type BetType = `win` | `place` | `support`;
 
 export interface Bet {
   id: string;
   userId: string;
   raceId: string;
   participantId: string;
-  type: 'win' | 'place';
+  type: BetType;
   amount: number;
-  odds: number;
   createdAt: string;
 }
 
@@ -95,7 +105,7 @@ export interface RaceViewOut {
 export type RaceView = RaceViewIn | RaceViewOut;
 
 // ランキング画面用
-export interface UserRanking {
+export interface UserPrivate {
   id: string;
   avatar: string;
   username: string;
@@ -103,4 +113,7 @@ export interface UserRanking {
   occupation: string;
   betCoins: number;
   totalStudyTime: number;
+  currentWeekStudyTime: number;
+  winOdds?: number;   // 追加: 単勝オッズ
+  placeOdds?: number; // 追加: 複勝オッズ
 };

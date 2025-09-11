@@ -1,27 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { X, Coins, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
 // 先頭で追加
 import { toast } from 'react-toastify';
-
-
+import { BetType, UserPrivate } from '../../types';
 
 interface BettingModalProps {
-  participant: any;
+  participant: UserPrivate; // ベットされた参加者
+  raceId: string;
   onClose: () => void;
-  userBalance: number;
+  userBalance: number; // 賭けをするユーザーの残高
 }
 
-export default function BettingModal({ participant, onClose, userBalance }: BettingModalProps) {
-  const { placeBet, currentRace } = useAppContext();
-  const [betType, setBetType] = useState<'win' | 'place'>('win');
-  const [amount, setAmount] = useState(100);
+export default function BettingModal({ participant, raceId, onClose, userBalance }: BettingModalProps) {
+  const { user, placeBet } = useAppContext();
+  const [betType, setBetType] = useState<BetType>('win');
+  const [amount, setAmount] = useState(100); // ベット額
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const odds = betType === 'win' ? participant.odds.win : participant.odds.place;
-  const expectedReturn = Math.floor(amount * odds);
+  const odds = betType === 'win' ? participant.winOdds : participant.placeOdds;
+  const expectedReturn = Math.floor(amount * odds!);
   const balanceIfHit = userBalance - amount + expectedReturn;
 
   const validate = useCallback(() => {
@@ -44,16 +44,15 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
   const confirmPlaceBet = () => {
     // 実行
     placeBet({
-      userId: 'current_user',
-      raceId: currentRace?.id || '',
-      participantId: participant.user.id,
+      userId: user!.id,
+      raceId: raceId,
+      participantId: participant.id,
       type: betType,
-      amount,
-      odds,
+      amount: amount,
       createdAt: new Date().toISOString(),
     });
 
-    // ✅ react-toastify
+    // TODO: 色が少しおかしくないか？確認
     toast.success(
       <div className="text-lg font-bold text-center">
         ベットが完了しました
@@ -101,11 +100,11 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
           <CardContent>
             {/* Participant Info */}
             <div className="text-center mb-6">
-              <div className="text-4xl mb-2">{participant.user.avatar}</div>
-              <h3 className="text-xl font-semibold">{participant.user.username}</h3>
-              <p className="text-gray-600">{participant.user.age}歳 {participant.user.occupation}</p>
+              <div className="text-4xl mb-2">{participant.avatar}</div>
+              <h3 className="text-xl font-semibold">{participant.username}</h3>
+              <p className="text-gray-600">{participant.age}歳 {participant.occupation}</p>
               <p className="text-emerald-600 font-bold mt-2">
-                現在勉強時間: {participant.currentStudyTime}時間
+                現在勉強時間: {participant.currentWeekStudyTime}時間
               </p>
             </div>
 
@@ -117,26 +116,24 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setBetType('win')}
-                  className={`p-3 rounded-lg border-2 text-center transition ${
-                    betType === 'win'
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 text-center transition ${betType === 'win'
+                    ? 'border-red-500 bg-red-50 text-red-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
                 >
                   <div className="font-semibold">単勝</div>
-                  <div className="text-sm">{participant.odds.win}倍</div>
+                  <div className="text-sm">{participant.winOdds!}倍</div>
                   <div className="text-xs text-gray-500">1位のみ的中</div>
                 </button>
                 <button
                   onClick={() => setBetType('place')}
-                  className={`p-3 rounded-lg border-2 text-center transition ${
-                    betType === 'place'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 text-center transition ${betType === 'place'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
                 >
                   <div className="font-semibold">複勝</div>
-                  <div className="text-sm">{participant.odds.place}倍</div>
+                  <div className="text-sm">{participant.placeOdds!}倍</div>
                   <div className="text-xs text-gray-500">3位以内で的中</div>
                 </button>
               </div>
@@ -236,8 +233,8 @@ export default function BettingModal({ participant, onClose, userBalance }: Bett
               </div>
 
               <div className="text-center mb-4">
-                <div className="text-3xl mb-2">{participant.user.avatar}</div>
-                <div className="font-semibold">{participant.user.username}</div>
+                <div className="text-3xl mb-2">{participant.avatar}</div>
+                <div className="font-semibold">{participant.username}</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {betType === 'win' ? '単勝' : '複勝'} / オッズ {odds}倍
                 </div>

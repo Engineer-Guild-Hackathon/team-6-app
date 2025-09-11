@@ -1,4 +1,4 @@
-import { User, Race, RaceParticipant } from '../types';
+import { User, Race} from '../types';
 
 const RACE_ID = 'race_2024_w1';
 
@@ -12,6 +12,7 @@ export const mockUsers: User[] = [
     betCoins: 2500,
     totalStudyTime: 120,
     currentWeekStudyTime: 25,
+    currentWeekStudyGoal: 30,
     avatar: '🧑‍💼',
     createdAt: '2024-01-01',
   },
@@ -24,6 +25,7 @@ export const mockUsers: User[] = [
     betCoins: 1800,
     totalStudyTime: 95,
     currentWeekStudyTime: 32,
+    currentWeekStudyGoal: 30,
     avatar: '👩‍🎓',
     createdAt: '2024-01-15',
   },
@@ -36,6 +38,7 @@ export const mockUsers: User[] = [
     betCoins: 3200,
     totalStudyTime: 200,
     currentWeekStudyTime: 18,
+    currentWeekStudyGoal: 30,
     avatar: '👨‍💻',
     createdAt: '2024-01-10',
   },
@@ -48,6 +51,7 @@ export const mockUsers: User[] = [
     betCoins: 2100,
     totalStudyTime: 150,
     currentWeekStudyTime: 28,
+    currentWeekStudyGoal: 30,
     avatar: '👸',
     createdAt: '2024-01-20',
   },
@@ -60,6 +64,7 @@ export const mockUsers: User[] = [
     betCoins: 1900,
     totalStudyTime: 80,
     currentWeekStudyTime: 15,
+    currentWeekStudyGoal: 30,
     avatar: '👨‍🏫',
     createdAt: '2024-01-05',
   },
@@ -79,6 +84,7 @@ export function generateMockRace(currentUser?: User): Race {
       betCoins: Math.floor(Math.random() * 3000) + 500,
       totalStudyTime: Math.floor(Math.random() * 200) + 50,
       currentWeekStudyTime: Math.floor(Math.random() * 40) + 5,
+      currentWeekStudyGoal: 30,
       studySubjects: ['勉強'],
       avatar: ['🧑', '👩', '👨', '👩‍🎓', '👨‍💼'][Math.floor(Math.random() * 5)],
       weeklyRank: Array(7).fill(0).map(() => Math.floor(Math.random() * 15) + 1),
@@ -86,40 +92,20 @@ export function generateMockRace(currentUser?: User): Race {
     })),
   ];
 
-  // currentUser を含めたい場合は先頭に入れておく（重複回避も一応）
-  const pool = currentUser
-    ? [currentUser, ...basePool.filter(u => u.id !== currentUser.id)]
-    : basePool;
-
-  // シャッフルして15人抽出
-  const shuffled = [...pool].sort(() => 0.5 - Math.random()).slice(0, 15);
-
-  // RaceParticipant を作成（id を付与）
-  let participants: RaceParticipant[] = shuffled.map((user) => ({
-    id: `rp_${RACE_ID}_${user.id}`,
-    user,
-    currentStudyTime: user.currentWeekStudyTime,
-    dailyProgress: Array(7).fill(0).map(() => Math.floor(Math.random() * 8) + 1),
-    position: 0, // まず 0、後で並べ替え後に採番
-    odds: {
-      win: Math.round((Math.random() * 10 + 2) * 100) / 100,
-      place: Math.round((Math.random() * 5 + 1.2) * 100) / 100,
-    },
-  }));
-
-    // 今週累計で降順ソート & 1..n で順位を採番
-  participants
-    .sort((a, b) => b.currentStudyTime - a.currentStudyTime)
-    .forEach((p, idx) => (p.position = idx + 1));
-
   return {
     id: 'race_2024_w1',
-    week: '2024年第1週',
+    name: '2024年第1週',
     status: 'active',
-    startDate: '2024-01-01',
-    endDate: '2024-01-07',
-    participants: participants.sort((a, b) => b.currentStudyTime - a.currentStudyTime),
+    raceStartDate: '2024-01-01',
+    raceEndDate: '2024-01-07',
     totalPot: 50000,
+    firstPrize: 20000,
+    secondPrize: 15000,
+    thirdPrize: 10000,
+    drawingStartDate: '2024-01-08',
+    drawingEndDate: '2024-01-10',
+    updatedAt: '2024-01-01',
+    createdAt: '2024-01-01',
   };
 }
 
@@ -133,6 +119,7 @@ export function getCurrentUser(): User {
     betCoins: 1500,
     totalStudyTime: 85,
     currentWeekStudyTime: 10,
+    currentWeekStudyGoal: 20,
     avatar: '🎯',
     createdAt: '2024-01-01',
     inRace: true, 
