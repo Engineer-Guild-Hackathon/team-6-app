@@ -6,7 +6,10 @@ import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
 import { StudySession } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
-import { getStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
+import {
+  getStudySessionsFromUserId,
+  getRecentStudySessionsFromUserId,
+} from '../../utils/getStudySessionsFromUserId';
 
 // 参加していない時の暫定ポイント換算
 const rankToPoints = (rank: number) => {
@@ -20,6 +23,14 @@ const rankToPoints = (rank: number) => {
 
 // 小数1桁に四捨五入して文字列化（例: 1.24 -> "1.2", 1.25 -> "1.3"）
 const formatHours = (h: number) => (Math.round(h * 10) / 10).toFixed(1);
+
+// 分数を「n時間n分」に
+const toHMString = (mins: number) => {
+  const m = Math.max(0, Math.round(Number(mins) || 0));
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${h}時間${mm}分`;
+};
 
 // 今週（日曜23:59:59.999 ローカル）の終了日時
 const getThisWeekEndLocal = () => {
@@ -42,7 +53,6 @@ const formatRemaining = (ms: number) => {
   return `${days}日 ${hours}時間 ${minutes}分`;
 };
 
-
 export default function Dashboard() {
   const { user, studySessions } = useAppContext();
   const [remainingText, setRemainingText] = useState<string>('');
@@ -51,8 +61,18 @@ export default function Dashboard() {
 
   // 曜日別の合計時間（h）
   const [weekDayHours, setWeekDayHours] = useState({
-    mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0,
+    mon: 0,
+    tue: 0,
+    wed: 0,
+    thu: 0,
+    fri: 0,
+    sat: 0,
+    sun: 0,
   });
+
+  // 直近3件
+  const [recentSessions, setRecentSessions] = useState<StudySession[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
 
   if (!user) return null;
 
@@ -77,15 +97,33 @@ export default function Dashboard() {
       const acc = { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 };
 
       for (const s of sessions) {
-        const dt = new Date(s.date);              // timestamptz
-        const day = dt.getDay();                  // 0=Sun ... 6=Sat
-        const key = (['sun','mon','tue','wed','thu','fri','sat'] as const)[day];
+        const dt = new Date(s.date); // timestamptz
+        const day = dt.getDay(); // 0=Sun ... 6=Sat
+        const key = (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[day];
         // duration は分保存なので /60 して時間に
         const hours = (Number(s.duration) || 0) / 60;
         acc[key] += hours;
       }
       setWeekDayHours(acc);
     })();
+  }, [user]);
+
+  // 直近3件を取得
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      try {
+        setRecentLoading(true);
+        const recents = await getRecentStudySessionsFromUserId(user.id, 3);
+        if (alive) setRecentSessions(recents);
+      } finally {
+        if (alive) setRecentLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
   // 残り時間を毎秒更新（リロード不要）
@@ -99,7 +137,6 @@ export default function Dashboard() {
     const id = setInterval(update, 1000); // 毎秒更新
     return () => clearInterval(id);
   }, []);
-
 
   // 棒グラフ表示用
   const MAX_DAILY = 6; // 6時間勉強すれば緑で棒グラフが満たされる
@@ -127,7 +164,7 @@ export default function Dashboard() {
     return { h: Math.floor(t / 60), m: t % 60 };
   };
   const goalHM = toHM(weeklyGoalMinutes);
-  const curHM  = toHM(currentWeekMinutes);
+  const curHM = toHM(currentWeekMinutes);
 
   // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
   // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
@@ -138,7 +175,7 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          おかえりなさい、{user.username}さん！ {user.avatar}
+          おかえりなさい、{user.username}さん! {user.avatar}
         </h1>
       </div>
 
@@ -167,9 +204,9 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className="h-full rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text中心 justify-between">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
               <Clock className="h-7 w-7 text-emerald-500" />
             </div>
@@ -187,7 +224,7 @@ export default function Dashboard() {
             </div>
             <p className="text-sm md:text-base text-gray-600">今日の勉強</p>
             <p className="text-2xl md:text-3xl font-bold text-purple-600 mt-0.5 md:mt-1">
-              {(todayStudyTime ?? 0).toLocaleString('ja-JP')}時間
+              {todayStudyTime.toLocaleString('ja-JP')}時間
             </p>
           </CardContent>
         </Card>
@@ -203,60 +240,70 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* 昨日の学習リスト */}
-            {(() => {
-              // 昨日の日付（ローカル）
-              const now = new Date();
-              const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-              const yKey = y.toDateString();
+            {/* 直近の学習（3件） */}
+            <div className="mb-6 rounded-xl border border-gray-100 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-gray-900">直近の学習（3件）</p>
+              </div>
 
-              // 昨日分を抽出
-              const yesterdaySessions = studySessions.filter(
-                (s) => new Date(s.date).toDateString() === yKey
-              );
+              <ul className="divide-y divide-gray-100">
+                {recentLoading ? (
+                  <>
+                    <li className="py-2">
+                      <div className="h-5 bg-gray-100 rounded w-3/4" />
+                    </li>
+                    <li className="py-2">
+                      <div className="h-5 bg-gray-100 rounded w-2/3" />
+                    </li>
+                    <li className="py-2">
+                      <div className="h-5 bg-gray-100 rounded w-1/2" />
+                    </li>
+                  </>
+                ) : recentSessions.length > 0 ? (
+                  recentSessions.map((s, i) => {
+                    const when = new Date(s.date);
+                    const subject = (s as any).subjectName ?? (s as any).subject ?? '学習';
+                    const durationMinutes = Number(s.duration) || 0; // 分
+                    const coins = Number(s.betCoinsEarned) || 0;
 
-              // 何もなければダミー表示
-              const items =
-                yesterdaySessions.length > 0
-                  ? yesterdaySessions.map((s, i) => ({
-                      id: s.id ?? `ys-${i}`,
-                      subject: s.subject,
-                      duration: s.duration,
-                      note: s.betCoinsEarned > 0 ? `+${s.betCoinsEarned} BC 獲得` : '記録のみ',
-                    }))
-                  : [
-                      { id: 'd1', subject: 'TOEIC リスニング', duration: 1.5, note: '公式問題集 Test 2' },
-                      { id: 'd2', subject: '簿記 仕訳', duration: 0.8, note: '過去問 10問' },
-                      { id: 'd3', subject: '英単語', duration: 0.5, note: 'ターゲット600語復習' },
-                    ];
-
-              return (
-                <div className="mb-6 rounded-xl border border-gray-100 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-900">昨日の学習</p>
-                    <span className="text-xs text-gray-500">
-                      {y.getFullYear()}/{y.getMonth() + 1}/{y.getDate()}
-                    </span>
-                  </div>
-
-                  <ul className="divide-y divide-gray-100">
-                    {items.map((it) => (
-                      <li key={it.id} className="py-2 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
+                    return (
+                      <li
+                        key={s.id ?? `recent-${i}`}
+                        className="py-2 grid grid-cols-12 items-center gap-3"
+                      >
+                        {/* 左：科目 + 日時 */}
+                        <div className="col-span-7 md:col-span-8 min-w-0">
                           <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
-                            {it.subject}
+                            {subject}
                           </span>
-                          <p className="mt-1 text-sm text-gray-700 truncate">{it.note}</p>
+                          {/* 例: 9/11 21:30 */}
+                          <p className="mt-1 text-xs text-gray-500">
+                            {when.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}{' '}
+                            {when.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
                         </div>
-                        <div className="shrink-0 text-sm font-semibold text-gray-900 tabular-nums">
-                          {it.duration} 時間
+
+                        {/* 中央：学習時間（n時間n分） */}
+                        <div className="col-span-3 md:col-span-2 text-center">
+                          <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                            {toHMString(durationMinutes)}
+                          </span>
+                        </div>
+
+                        {/* 右：獲得BC（0でも表示） */}
+                        <div className="col-span-2 md:col-span-2 text-right">
+                          <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+                            +{coins} BC
+                          </span>
                         </div>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })()}
+                    );
+                  })
+                ) : (
+                  <li className="py-2 text-sm text-gray-500">直近の学習記録はまだありません</li>
+                )}
+              </ul>
+            </div>
 
             {/* 縦棒グラフ（てっぺんが食い込まないよう mt-4 で余白） */}
             <div className="mt-4 flex items-end justify-between h-40 px-2">
@@ -299,7 +346,6 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-
         </Card>
 
         {/* Race Status */}
@@ -345,11 +391,13 @@ export default function Dashboard() {
                   );
 
                   const top3 = participants.slice(0, 3);
-                  const rows = me && me.position > 3 ? [...top3, me] : [...top3, participants[3]].filter(Boolean);
+                  const rows =
+                    me && me.position > 3 ? [...top3, me] : [...top3, participants[3]].filter(Boolean);
 
                   const seen = new Set<string>();
                   const list = rows.filter((p) => !seen.has(p.user.id) && (seen.add(p.user.id), true));
-                  const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
+                  const medal = (pos: number) =>
+                    pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '';
 
                   return (
                     <Link
@@ -365,22 +413,24 @@ export default function Dashboard() {
                             <li
                               key={p.user.id}
                               className={[
-                                "flex items-center justify-between rounded-lg border",
-                                "border-gray-100 bg-white px-3 py-2.5",
-                                isMe ? "ring-1 ring-emerald-200/60" : ""
-                              ].join(" ")}
+                                'flex items-center justify-between rounded-lg border',
+                                'border-gray-100 bg-white px-3 py-2.5',
+                                isMe ? 'ring-1 ring-emerald-200/60' : '',
+                              ].join(' ')}
                             >
                               <div className="flex items-center gap-3 min-w-0">
-                                <span className="w-8 text-right tabular-nums text-gray-500">{p.position}.</span>
+                                <span className="w-8 text-right tabular-nums text-gray-500">
+                                  {p.position}.
+                                </span>
                                 <span className="w-6 text-center">{medal(p.position)}</span>
                                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
                                   {p.user.avatar}
                                 </span>
                                 <span
                                   className={[
-                                    "truncate text-base md:text-lg",
-                                    isMe ? "font-semibold text-gray-900" : "font-medium text-gray-800"
-                                  ].join(" ")}
+                                    'truncate text-base md:text-lg',
+                                    isMe ? 'font-semibold text-gray-900' : 'font-medium text-gray-800',
+                                  ].join(' ')}
                                   title={p.user.username}
                                 >
                                   {p.user.username}
@@ -428,7 +478,9 @@ export default function Dashboard() {
                           className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-8 text-right tabular-nums text-gray-500">{p.position}.</span>
+                            <span className="w-8 text-right tabular-nums text-gray-500">
+                              {p.position}.
+                            </span>
                             <span className="w-6 text-center">{medal}</span>
                             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
                               {p.user.avatar}
@@ -466,14 +518,21 @@ export default function Dashboard() {
 
       {/* Study Subjects
       <Card className="mt-8 rounded-2xl border border-gray-100 shadow-sm">
-        <CardHeader> 
-          <CardTitle>勉強科目</CardTitle> 
-        </CardHeader> 
-        <CardContent> 
-          <div className="flex flex-wrap gap-2"> {user.studySubjects.map((subject: string, index: number) => ( <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium" > {subject} </span> 
-        ))} 
-          </div> 
-        </CardContent> 
+        <CardHeader>
+          <CardTitle>勉強科目</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {user.studySubjects.map((subject: string, index: number) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
+              >
+                {subject}
+              </span>
+            ))}
+          </div>
+        </CardContent>
       </Card> */}
     </div>
   );

@@ -1,3 +1,4 @@
+// utils/getStudySessionsFromUserId.ts
 import { supabase } from '../supabaseClient';
 import { StudySession } from '../types';
 
@@ -8,7 +9,7 @@ import { StudySession } from '../types';
  * ※ ブラウザ実行前提で、ローカルタイムはユーザーの環境 (JST) を利用。
  *   SSR の場合や別TZにしたい場合は、明示的なTZ計算が必要。
  */
-function getThisWeekRangeISO(base = new Date()) {
+export function getThisWeekRangeISO(base = new Date()) {
   // 今日のローカル日付 00:00
   const d0 = new Date(base.getFullYear(), base.getMonth(), base.getDate());
   // 0=Sun ... 6=Sat → Mon=0 になる差分
@@ -24,7 +25,8 @@ function getThisWeekRangeISO(base = new Date()) {
   endLocal.setDate(startLocal.getDate() + 7);
 
   // ローカル→UTC ISO 文字列に変換
-  const toUTCISO = (x: Date) => new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString();
+  const toUTCISO = (x: Date) =>
+    new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString();
 
   return {
     startISO: toUTCISO(startLocal), // 例: 2025-09-07T15:00:00.000Z (JSTの月曜0時)
@@ -32,6 +34,11 @@ function getThisWeekRangeISO(base = new Date()) {
   };
 }
 
+/**
+ * 指定ユーザーの「今週の学習セッション」を取得（今週の月曜0:00〜翌月曜0:00、降順）
+ * - duration は「分」で返します（DBの値をそのまま）。
+ * - date は timestamptz の文字列（例: "2025-09-09T14:55:21.771+00:00"）。
+ */
 export async function getStudySessionsFromUserId(userId: string): Promise<StudySession[]> {
   const { startISO, endISO } = getThisWeekRangeISO();
 
@@ -44,11 +51,11 @@ export async function getStudySessionsFromUserId(userId: string): Promise<StudyS
       duration,
       date,
       bet_coins_earned,
-      subjects (name) 
+      subjects (name)
     `)
     .eq('user_id', userId)
-    .gte('date', startISO)  // 今週の月曜0:00（JST→UTC）
-    .lt('date', endISO)     // 翌週の月曜0:00（JST→UTC）※ltで半開区間
+    .gte('date', startISO) // 今週の月曜0:00（JST→UTC）
+    .lt('date', endISO)    // 翌週の月曜0:00（JST→UTC）※ltで半開区間
     .order('date', { ascending: false });
 
   if (error) {
@@ -62,9 +69,58 @@ export async function getStudySessionsFromUserId(userId: string): Promise<StudyS
     id: item.id,
     userId: item.user_id,
     subjectId: item.subject_id,
-    subjectName: item.subjects?.name || '',
-    duration: item.duration,
+    subjectName: item.subjects?.name ?? '',
+    duration: typeof item.duration === 'number' ? item.duration : Number(item.duration ?? 0),
     date: item.date,
-    betCoinsEarned: item.bet_coins_earned,
+    betCoinsEarned:
+      typeof item.bet_coins_earned === 'number'
+        ? item.bet_coins_earned
+        : Number(item.bet_coins_earned ?? 0),
+  }));
+}
+
+/**
+ * 指定ユーザーの直近 N 件の学習セッションを取得（新しい順）
+ * - 週の範囲は設けず、単純に最新から limit 件取得します。
+ * - duration は「分」で返します（DBの値をそのまま）。
+ * - date は timestamptz の文字列（例: "2025-09-09T14:55:21.771+00:00"）。
+ */
+export async function getRecentStudySessionsFromUserId(
+  userId: string,
+  limit = 3
+): Promise<StudySession[]> {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select(`
+      id,
+      user_id,
+      subject_id,
+      duration,
+      date,
+      bet_coins_earned,
+      subjects (name)
+    `)
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching recent study sessions:', error.message);
+    return [];
+  }
+
+  if (!data) return [];
+
+  return data.map((item: any) => ({
+    id: item.id,
+    userId: item.user_id,
+    subjectId: item.subject_id,
+    subjectName: item.subjects?.name ?? '',
+    duration: typeof item.duration === 'number' ? item.duration : Number(item.duration ?? 0),
+    date: item.date,
+    betCoinsEarned:
+      typeof item.bet_coins_earned === 'number'
+        ? item.bet_coins_earned
+        : Number(item.bet_coins_earned ?? 0),
   }));
 }
