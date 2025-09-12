@@ -125,7 +125,7 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  // 残り時間を毎秒更新（リロード不要）
+  // 残り時間を毎分更新（リロード不要）
   useEffect(() => {
     const update = () => {
       const end = getThisWeekEndLocal();
@@ -133,7 +133,7 @@ export default function Dashboard() {
       setRemainingText(formatRemaining(end.getTime() - now.getTime()));
     };
     update(); // 初期表示
-    const id = setInterval(update, 1000); // 毎秒更新
+    const id = setInterval(update, 60000); // 毎分更新
     return () => clearInterval(id);
   }, []);
 
