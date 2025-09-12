@@ -179,7 +179,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Error adding study session via RPC:', error.message);
         return;
       }
-
+      // ユーザーのベットコインと勉強時間を更新
+      state.user.betCoins += session.betCoinsEarned;
+      state.user.totalStudyTime += session.duration;
+      state.user.currentWeekStudyTime += session.duration;
       // 成功したらローカル state にも反映
       const newSession: StudySession = {
         ...session,
@@ -210,7 +213,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Error placing bet via RPC:', error.message);
         return;
       }
-
+      // ローカル state のユーザーのベットコインを減らす
+      state.user.betCoins -= bet.amount;
       // 成功したらローカル state にも反映
       const newBet: Bet = {
         ...bet,
