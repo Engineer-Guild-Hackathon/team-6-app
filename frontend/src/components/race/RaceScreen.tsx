@@ -118,8 +118,14 @@ export default function RaceScreen() {
   const getOdds = (participants: UserPrivate[], raceId: string): void => {
     const updatedParticipants = participants.map(participant => {
       // TODO: raceIdを使ってオッズを獲得
-      const winOdds = parseFloat((Math.random() * 10 + 1).toFixed(1)); // 仮のオッズ計算（小数第一位まで）
-      const placeOdds = parseFloat((Math.random() * 5 + 1).toFixed(1)) * 5 + 1; // 仮のオッズ計算
+      let winOdds = parseFloat((Math.random() * 10 + 1).toFixed(1)); // 仮のオッズ計算（小数第一位まで）
+      let placeOdds = parseFloat((Math.random() * 5 + 1).toFixed(1)); // 仮のオッズ計算
+      if (winOdds < placeOdds) {
+        // 単勝オッズが複勝オッズより低くなることはないように調整
+        const tmp = winOdds;
+        winOdds = placeOdds;
+        placeOdds = tmp;
+      }
       return {
         ...participant,
         winOdds: winOdds,
@@ -138,8 +144,8 @@ export default function RaceScreen() {
     const maxTime = Math.max(...sorted.map((p: any) => p.currentWeekStudyTime), 1);
 
     // 位置の上下限バッファ（0〜1の割合）
-    const START_BUFFER = 0.08; // 右端ベタ付きを防ぐ下限（スタート側）
-    const FINISH_BUFFER = 0.06; // 左端ベタ付きを防ぐ上限（ゴール側）
+    const START_BUFFER = 0.15; // 右端ベタ付きを防ぐ下限（スタート側）
+    const FINISH_BUFFER = 0.0; // 左端ベタ付きを防ぐ上限（ゴール側）
 
     return (
       <div className="space-y-4">
@@ -221,7 +227,8 @@ export default function RaceScreen() {
   // ===== 通常の順位表 =====
   const renderDefaultLeaderboard = () => (
     <div className="space-y-4">
-      {selectedParticipants.map((participant: UserPrivate, index: number) => (
+      {/* // 今週の勉強時間が多い順にソートして表示 */}
+      {[...selectedParticipants].sort((a, b) => b.currentWeekStudyTime - a.currentWeekStudyTime).map((participant: UserPrivate, index: number) => (
         <div
           key={participant.id}
           className={`flex items-center justify-between p-4 rounded-lg border-2 ${index === 0
@@ -445,16 +452,6 @@ export default function RaceScreen() {
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
               <CardTitle>ベッティング - 勝者を予想しよう！</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshBetting}
-                disabled={isRefreshing}
-                className="flex items-center gap-2"
-              >
-                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? '更新中…' : '更新'}
-              </Button>
             </div>
 
             <div className="text-sm text-gray-700 flex items-center justify-between">
@@ -469,9 +466,20 @@ export default function RaceScreen() {
                 <span className="font-bold ml-1 text-xl">{user.betCoins.toLocaleString()} BC</span>
               </span>
             </div>
-
-            <div className="text-xs text-gray-600">
-              最小ベット額: <span className="font-semibold">100 BC</span> ／ 単勝・複勝から選択できます
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshBetting}
+                disabled={isRefreshing}
+                className="gap-2 w-fit"
+              >
+                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? '更新中…' : 'オッズ情報の取得'}
+              </Button>
+              <div className="text-xs text-gray-600">
+                最小ベット額: <span className="font-semibold">100 BC</span> ／ 単勝・複勝から選択できます
+              </div>
             </div>
           </CardHeader>
 
@@ -502,7 +510,7 @@ export default function RaceScreen() {
                         <span className="text-lg font-semibold text-gray-700">今週の学習時間</span>
                         <span className="text-3xl font-extrabold text-emerald-600">
                           {/*TODO: 今週ではなく先週の学習時間を表示させたいけどどうしよう */}
-                          {p.currentWeekStudyTime}時間
+                          {Math.floor(p.currentWeekStudyTime / 60)}時間
                         </span>
                       </div>
 
@@ -522,7 +530,7 @@ export default function RaceScreen() {
                             setBettedParticipant(p);
                             setShowBettingModal(true);
                           }}
-                          disabled={user.betCoins < 100}
+                          disabled={user.betCoins < 100 || !p.winOdds || !p.placeOdds}
                         >
                           ベットする
                         </Button>
