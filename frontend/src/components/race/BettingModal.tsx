@@ -53,7 +53,6 @@ export default function BettingModal({ participant, raceId, onClose, userBalance
       createdAt: new Date().toISOString(),
     });
 
-    // TODO: 色が少しおかしくないか？確認
     toast.success(
       <div className="text-lg font-bold text-center">
         ベットが完了しました
@@ -61,9 +60,7 @@ export default function BettingModal({ participant, raceId, onClose, userBalance
       {
         position: 'top-center',
         autoClose: 4000,
-        theme: 'colored',
-        icon: <span>✅</span>,
-        className: 'min-h-[80px] flex items-center justify-center text-xl', // ← 全体のサイズ調整
+        theme: 'colored',     
       }
     );
     setShowConfirm(false);

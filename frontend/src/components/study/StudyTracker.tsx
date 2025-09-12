@@ -6,11 +6,11 @@ import { useAppContext } from '../../contexts/AppContext';
 import { toast } from 'react-toastify';
 import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUserId';
 import { StudySession, SubjectWithId } from '../../types';
-import { getStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
+import { getRecentStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
 import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 export default function StudyTracker() {
-  const { user, studySessions, addStudySession } = useAppContext();
+  const { user, addStudySession } = useAppContext();
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
   const [showNewSubjectInput, setShowNewSubjectInput] = useState(false);
@@ -19,8 +19,11 @@ export default function StudyTracker() {
   const [userSubjects, setUserSubjects] = useState<SubjectWithId[]>([]);
   // 選択中の科目
   const [selectedSubject, setSelectedSubject] = useState<SubjectWithId | null>(null);
-  // ユーザーの過去の勉強記録
-  const [pastSessions, setPastSessions] = useState<StudySession[]>([]);
+  // 直近5件
+  const [recent5, setRecent5] = useState<StudySession[]>([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [recentError, setRecentError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
 
@@ -28,12 +31,10 @@ export default function StudyTracker() {
       const subjects = await getStudySubjectsFromUserId(user!.id);
       setUserSubjects(subjects);
     }
-    async function fetchPastSessions() {
-      const sessions = await getStudySessionsFromUserId(user!.id);
-      setPastSessions(sessions);
-    }
+
+
     fetchSubjects();
-    fetchPastSessions();
+    refreshRecent5(user!.id);
   }, [user]);
 
   useEffect(() => {
@@ -46,12 +47,27 @@ export default function StudyTracker() {
     return () => clearInterval(interval);
   }, [isRunning]);
 
+  // 以下、終了後に勉強記録を更新するための内容
+  const refreshRecent5 = async (uid: string) => {
+    try {
+      setRecentLoading(true);
+      setRecentError(null);
+      const rows = await getRecentStudySessionsFromUserId(uid, 5);
+      setRecent5(rows);
+    } catch (e: any) {
+      setRecentError(e?.message ?? '取得に失敗しました');
+    } finally {
+      setRecentLoading(false);
+    }
+  };
+
+  const [saving, setSaving] = useState(false);
+
   const handleStart = () => {
     if (!userSubjects.length) {
-      // CHANGED: alert -> toast.warn
       toast.warn('勉強科目を選択してください！', {
         position: 'top-center',
-        autoClose: 3000, //アラートが閉じるまでの時間
+        autoClose: 3000,
         theme: 'colored',
       });
       return;
@@ -59,7 +75,7 @@ export default function StudyTracker() {
     if(!selectedSubject) {
       toast.warn('勉強科目を選択してください！', {
         position: 'top-center',
-        autoClose: 3000, //アラートが閉じるまでの時間
+        autoClose: 3000,
         theme: 'colored',
       });
       return;
@@ -71,41 +87,49 @@ export default function StudyTracker() {
     setIsRunning(false);
   };
 
-  const handleStop = () => {
-    if (time > 0) {
-      const minutes = Math.floor(time / 60);
-      const betCoinsEarned = minutes; // 1分ごとに1ベットコイン
-      const duration = minutes; // 時間は分単位で保存
-      addStudySession({
-        userId: user?.id || '',
-        subjectId: selectedSubject?.id || '',
-        duration,
-        date: new Date().toISOString(),
-        betCoinsEarned: betCoinsEarned,
-      });
-
-      // CHANGED: alert -> toast.success
-      toast.info(
-        `お疲れ様でした！\n${convertMinutesToHours(duration)}勉強して${betCoinsEarned}ベットコインを獲得しました！`,
-        {
-          position: 'top-center',
-          autoClose: 3500,
-          theme: 'colored',
-          // icon を少しリッチに
-          icon: <span>🏁</span>,
-        }
-      );
-    } else {
-      // NEW: 0秒で終了した時の案内
+  const handleStop = async () => {
+    if (time <= 0) {
       toast.error('タイマーが0秒です。記録は追加されません。', {
         position: 'top-center',
         autoClose: 2000,
       });
+      return;
     }
+    if (!user || !selectedSubject) return;
 
-    setIsRunning(false);
-    setTime(0);
-    setSelectedSubject(null);
+    try {
+      setSaving(true);
+      const minutes = Math.floor(time / 60);
+      const betCoinsEarned = minutes; // 1分=1BC
+      const duration = minutes;
+
+      // ★ ここで DB に保存（addStudySession が Supabase insert を実行する想定）
+      const saved = await addStudySession({
+        userId: user.id,
+        subjectId: selectedSubject.id,
+        duration,
+        date: new Date().toISOString(),
+        betCoinsEarned,
+      });
+
+      // ★ 保存後に直近5件を再取得
+      await refreshRecent5(user.id);
+
+      toast.info(
+        <div>
+          <p>{convertMinutesToHours(duration)} の勉強、お疲れ様でした！{betCoinsEarned} ベットコインを獲得！</p>
+        </div>,
+        { position: 'top-center', autoClose: 4000, theme: 'colored' }
+      );
+    } catch (e: any) {
+      console.error(e);
+      toast.error('記録の保存に失敗しました。', { position: 'top-center' });
+    } finally {
+      setSaving(false);
+      setIsRunning(false);
+      setTime(0);
+      setSelectedSubject(null);
+    }
   };
 
   const handleAddSubject = () => {
@@ -113,7 +137,6 @@ export default function StudyTracker() {
       setSelectedSubject({ id: newSubject, name: newSubject });
       setNewSubject('');
       setShowNewSubjectInput(false);
-      // OPTIONAL: 追加トースト
       toast.success('科目を追加しました', { autoClose: 1500 });
     }
   };
@@ -163,15 +186,15 @@ export default function StudyTracker() {
                   disabled={isRunning}
                 >
                   <option value="">科目を選択</option>
-                    {userSubjects.length > 0 ? (
+                  {userSubjects.length > 0 ? (
                     userSubjects.map((sub, index) => (
                       <option key={index} value={sub.id}>
-                      {sub.name}
+                        {sub.name}
                       </option>
                     ))
-                    ) : (
+                  ) : (
                     <option disabled>科目がありません</option>
-                    )}
+                  )}
                 </select>
                 <Button
                   variant="outline"
@@ -216,10 +239,11 @@ export default function StudyTracker() {
                   一時停止
                 </Button>
               )}
-              <Button onClick={handleStop} variant="outline" size="lg" className="px-8">
+              <Button onClick={handleStop} variant="outline" size="lg" className="px-8" disabled={saving}>
                 <Square className="h-5 w-5 mr-2" />
                 終了
               </Button>
+
             </div>
 
             {time > 0 && (
@@ -241,7 +265,30 @@ export default function StudyTracker() {
           <CardTitle>最近の勉強記録</CardTitle>
         </CardHeader>
         <CardContent>
-          {studySessions.length === 0 ? (
+          {recentLoading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-gray-100 rounded-full w-8 h-8" />
+                    <div>
+                      <div className="h-4 bg-gray-100 rounded w-40 mb-2" />
+                      <div className="h-3 bg-gray-100 rounded w-24" />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="h-4 bg-gray-100 rounded w-20 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentError ? (
+            <div className="text-center py-8 text-red-600">
+              最近の勉強記録を取得できませんでした。<br />
+              {recentError}
+            </div>
+          ) : recent5.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               まだ勉強記録がありません。
               <br />
@@ -249,7 +296,7 @@ export default function StudyTracker() {
             </div>
           ) : (
             <div className="space-y-4">
-              {pastSessions.slice(0,5).map((session) => (
+              {recent5.map((session) => (
                 <div
                   key={session.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
@@ -259,7 +306,7 @@ export default function StudyTracker() {
                       <Trophy className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{session.subjectName}</p>
+                      <p className="font-semibold text-gray-900">{session.subjectName || '学習'}</p>
                       <p className="text-sm text-gray-600">
                         {new Date(session.date).toLocaleDateString('ja-JP')}
                       </p>
