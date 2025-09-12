@@ -145,7 +145,7 @@ export default function StudyTracker() {
         </CardHeader>
         <CardContent>
           <div className="text-center">
-            <div className="text-8xl font-mono font-bold text-emerald-600 mb-6">
+            <div className="text-6xl md:text-8xl font-mono font-bold text-emerald-600 mb-6">
               {formatTime(time)}
             </div>
 

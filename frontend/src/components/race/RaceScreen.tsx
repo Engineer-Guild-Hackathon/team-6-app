@@ -345,15 +345,15 @@ export default function RaceScreen() {
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       {/* タブ切替 */}
       <div className="flex space-x-4 mb-6">
-        <Button variant={selectedTab === 'active' ? 'primary' : 'outline'} onClick={() => setSelectedTab('active')}>
-          <Trophy className="h-4 w-4 mr-2" />
+        <Button variant={selectedTab === 'active' ? 'primary' : 'outline'} className='text-sm md:text-lg' onClick={() => setSelectedTab('active')}>
+          <Trophy className="h-4 w-4 mr-2 " />
           レース状況
         </Button>
-        <Button variant={selectedTab === 'drawing' ? 'primary' : 'outline'} onClick={() => setSelectedTab('drawing')}>
+        <Button variant={selectedTab === 'drawing' ? 'primary' : 'outline'} className='text-sm md:text-lg' onClick={() => setSelectedTab('drawing')}>
           <Coins className="h-4 w-4 mr-2" />
           ベッティング
         </Button>
-        <Button variant={selectedTab === 'finished' ? 'primary' : 'outline'} onClick={() => setSelectedTab('finished')}>
+        <Button variant={selectedTab === 'finished' ? 'primary' : 'outline'} className='text-sm md:text-lg' onClick={() => setSelectedTab('finished')}>
           <TrendingUp className="h-4 w-4 mr-2" />
           過去の結果
         </Button>
@@ -362,7 +362,7 @@ export default function RaceScreen() {
       <div className="flex gap-4 mb-6 overflow-x-auto">
         {selectedRaces.map((race) => (
           <Button key={race.id} variant={selectedRace.id === race.id ? 'primary' : 'outline'} className="rounded shadow hover:shadow-md transition cursor-pointer" onClick={() => handleSelectedRaceOnClick(race.id)}>
-            <span className="text-lg font-semibold text-gray-800">{race.name}</span>
+            <span className="md:text-lg font-semibold text-gray-800">{race.name}</span>
           </Button>
         ))}
       </div>
@@ -425,7 +425,7 @@ export default function RaceScreen() {
                   aria-label="表示デザインを切り替え"
                   className="flex items-center gap-2 ml-4"
                 >
-                  <Palette className="h-4 w-4" />
+                  <Palette className="h-auto w-auto" />
                   {raceTheme === 'keiba' ? '通常表示に戻す' : '競馬トラックに切替'}
                 </Button>
               </div>
@@ -451,7 +451,7 @@ export default function RaceScreen() {
         <Card>
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
-              <CardTitle>ベッティング - 勝者を予想しよう！</CardTitle>
+              <CardTitle className='text-lg md:text-xl'>ベッティング - 勝者を予想しよう！</CardTitle>
             </div>
 
             <div className="text-sm text-gray-700 flex items-center justify-between">
@@ -461,21 +461,21 @@ export default function RaceScreen() {
                   {formatActivePeriod()}
                 </span>
               </span>
-              <span className="text-lg text-amber-700">
+              <span className="md:text-lg text-amber-700">
                 💰 あなたの保有ベットコイン:
-                <span className="font-bold ml-1 text-xl">{user.betCoins.toLocaleString()} BC</span>
+                <span className="font-bold ml-1 md:text-xl">{user.betCoins.toLocaleString()} BC</span>
               </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 justify-between">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleRefreshBetting}
                 disabled={isRefreshing}
-                className="gap-2 w-fit"
-              >
-                <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? '更新中…' : 'オッズ情報の取得'}
+                className="gap-2 w-fit py-5"
+                >
+                <RefreshCcw className={`h-fit w-fit ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? '更新中…' : 'オッズの取得'}
               </Button>
               <div className="text-xs text-gray-600">
                 最小ベット額: <span className="font-semibold">100 BC</span> ／ 単勝・複勝から選択できます

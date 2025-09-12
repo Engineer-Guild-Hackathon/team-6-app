@@ -441,12 +441,12 @@ export default function ProfileScreen() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>今月の勉強カレンダー（{viewYear}年 {viewMonth + 1}月）</CardTitle>
+                <CardTitle className='text-lg md:text-xl'>今月の勉強カレンダー（{viewYear}年 {viewMonth + 1}月）</CardTitle>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={prevMonth} aria-label="前の月へ">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={gotoToday}>今日へ</Button>
+                  <Button variant="outline" className='text-sm md:text-lg w-20 md:w-24' onClick={gotoToday}>今日へ</Button>
                   <Button variant="outline" size="sm" onClick={nextMonth} aria-label="次の月へ">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
