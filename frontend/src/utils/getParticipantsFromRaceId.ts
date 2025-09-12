@@ -1,7 +1,10 @@
 import { supabase } from "../supabaseClient";
 import { UserPrivate } from "../types";
 
-export const getParticipantsFromRaceId = async (raceId: string): Promise<UserPrivate[]> => {
+// 返す型を UserPrivate に position を足したものにする
+export type RankedUserPrivate = UserPrivate & { position: number };
+
+export const getParticipantsFromRaceId = async (raceId: string): Promise<RankedUserPrivate[]> => {
   const { data, error } = await supabase
     .from("race_participants")
     .select(
@@ -41,7 +44,7 @@ export const getParticipantsFromRaceId = async (raceId: string): Promise<UserPri
   betCoins: p.users.bet_coins || 0,
   currentWeekStudyTime: p.users.current_week_study_time || 0,
   // 順位をmapの順序で付与
-  position: idx + 1.
+  position: idx + 1,
 } as UserPrivate));
 
 };

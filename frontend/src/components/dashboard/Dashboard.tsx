@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Clock, Coins, TrendingUp, Target, Trophy, Calendar } from 'lucide-react';
-import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
 import { Race, StudySession, UserPrivate } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
@@ -11,10 +10,11 @@ import {
   getRecentStudySessionsFromUserId,
 } from '../../utils/getStudySessionsFromUserId';
 import { getParticipantsFromRaceId } from '../../utils/getParticipantsFromRaceId';
+import { RankedUserPrivate } from '../../utils/getParticipantsFromRaceId';
 import { getRacesFromStatus } from '../../utils/getRacesFromStatus';
 import { getRaceFromId } from '../../utils/getRaceFromId';
 
-// 参加していない時の暫定ポイント換算
+// ベット参加時の暫定ポイント換算(仮のスコア)
 const rankToPoints = (rank: number) => {
   if (rank === 1) return 100;
   if (rank === 2) return 70;
@@ -139,7 +139,7 @@ export default function Dashboard() {
   }, []);
 
   // ===== 順位表のための参加者取得 =====
-  const [participants, setParticipants] = useState<UserPrivate[]>([]);
+  const [participants, setParticipants] = useState<RankedUserPrivate[]>([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [participantsError, setParticipantsError] = useState<string | null>(null);
 
@@ -192,8 +192,6 @@ export default function Dashboard() {
     };
     fetchRace();
   }, [user]);
-
-  const me = user;
 
   // 週間目標（DBは分保存）
   const weeklyGoalMinutes = user.currentWeekStudyGoal ?? 2400; // 40h = 2400分 フォールバック
