@@ -362,7 +362,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Race Status */}
-        {/* <Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="h-5 w-5 text-amber-600" />
@@ -381,22 +381,14 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-center py-4">
               <div className="text-5xl mb-2">🏇</div>
-              <h3 className="font-semibold">{race.name}</h3>
+              <h3 className="font-semibold">{race?.name}</h3>
               <p className="text-gray-600">残り時間: {remainingText}</p>
             </div>
 
             {user.inRace && me ? (
-              <div className="space-y-4"> */}
-                {/* 優勝賞金（元デザイン） */}
-                {/* <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
-                  <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
-                  <p className="text-2xl font-bold text-amber-900">
-                    {race.totalPot.toLocaleString('ja-JP')} BC
-                  </p>
-                </div> */}
-
+              <div className="space-y-4">
                 {/* ▼順位表 全体をクリックで遷移（内部に <Link> は置かない） */}
-                {/* {(() => {
+                {(() => {
                   const first = participants![0];
                   const diffToFirstHours = Math.max(
                     0,
@@ -405,16 +397,21 @@ export default function Dashboard() {
 
                   const top3 = participants!.slice(0, 3);
                   const rows =
-                    me && me.position > 3 ? [...top3, me] : [...top3, participants![3]].filter(Boolean);
+                    me && me.position > 3
+                      ? [...top3, me]
+                      : [...top3, participants![3]].filter(Boolean);
 
                   const seen = new Set<string>();
-                  const list = rows.filter((p) => !seen.has(p.user.id) && (seen.add(p.user.id), true));
+                  const list = rows.filter(
+                    (p) => !seen.has(p.user.id) && (seen.add(p.user.id), true)
+                  );
+
                   const medal = (pos: number) =>
-                    pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '';
+                    pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "";
 
                   return (
                     <Link
-                      to={`/races/${race.id}`}
+                      to={`/races/${race?.id}`}
                       className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                       aria-label="順位表を開いてレースページへ移動"
                     >
@@ -441,9 +438,11 @@ export default function Dashboard() {
                                 </span>
                                 <span
                                   className={[
-                                    'truncate text-base md:text-lg',
-                                    isMe ? 'font-semibold text-gray-900' : 'font-medium text-gray-800',
-                                  ].join(' ')}
+                                    "truncate text-base md:text-lg",
+                                    isMe
+                                      ? "font-semibold text-gray-900"
+                                      : "font-medium text-gray-800",
+                                  ].join(" ")}
                                   title={p.user.username}
                                 >
                                   {p.user.username}
@@ -453,16 +452,18 @@ export default function Dashboard() {
                                     あなた
                                   </span>
                                 )}
-                              </div> */}
+                              </div>
 
                               {/* 自分の行だけ 1位との差 */}
-                              {/* <div className="shrink-0">
+                              <div className="shrink-0">
                                 {isMe ? (
                                   <span className="text-base text-gray-600">
                                     − 1位との差 {diffToFirstHours}時間
                                   </span>
                                 ) : (
-                                  <span className="text-sm text-transparent select-none">_</span>
+                                  <span className="text-sm text-transparent select-none">
+                                    _
+                                  </span>
                                 )}
                               </div>
                             </li>
@@ -474,17 +475,18 @@ export default function Dashboard() {
                 })()}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* ▼左：順位表（全体クリックで遷移・1位差は表示しない） */}
-                {/* <Link
-                  to={`/races/${race.id}`}
+                <Link
+                  to={`/races/${race?.id}`}
                   className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   aria-label="順位表を開いてレースページへ移動"
                 >
                   <p className="text-xs text-gray-500 mb-3">順位表</p>
                   <ul className="space-y-2">
-                    {race.participants!.slice(0, 3).map((p) => {
-                      const medal = p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : '🥉';
+                    {race?.participants?.slice(0, 3).map((p) => {
+                      const medal =
+                        p.position === 1 ? "🥇" : p.position === 2 ? "🥈" : "🥉";
                       return (
                         <li
                           key={p.user.id}
@@ -510,7 +512,11 @@ export default function Dashboard() {
                       );
                     })}
                   </ul>
-                </Link> */}
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
                 {/* 右：ポイント合計（従来デザインのまま）
                 <div className="rounded-xl border border-gray-100 p-4">
