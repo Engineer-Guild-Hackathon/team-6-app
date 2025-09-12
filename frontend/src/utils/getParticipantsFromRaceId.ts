@@ -30,7 +30,5 @@ export const getParticipantsFromRaceId = async (raceId: string): Promise<UserPri
     currentWeekStudyTime: p.users.current_week_study_time || 0,
   } as UserPrivate));
 
-  // 上位3名だけにする場合は以下を有効化
-  return mapped.slice(0, 3);
-  // return mapped;
+  return mapped;
 };

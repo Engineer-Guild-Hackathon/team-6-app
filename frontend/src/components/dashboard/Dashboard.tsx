@@ -513,7 +513,8 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ▼左：順位表（全体クリックで遷移・1位差は表示しない） */}
+                {/* ▼ベット参加時（user.inRace === false） */}
+                {/* 左：順位表（全体クリックで遷移・1位差は表示しない） */}
                 <Link
                   to={`/races/${race?.id}`}
                   className="md:col-span-2 block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
@@ -532,8 +533,7 @@ export default function Dashboard() {
                     ) : participants.length === 0 ? (
                       <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
                     ) : (
-                      // ★ ここがポイント：slice(0,3)は不要
-                      participants.map((p, i) => {
+                      participants.slice(0, 3).map((p, i) => {
                         const rank = i + 1; // 配列順 = 順位
                         const rankStyle =
                           rank === 1
@@ -545,7 +545,10 @@ export default function Dashboard() {
                         return (
                           <li
                             key={p.id}
-                            className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${rankStyle}`}
+                            className={[
+                              "flex items-center justify-between rounded-lg border px-3 py-2.5",
+                              rankStyle,
+                            ].join(" ")}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="w-8 text-right tabular-nums text-gray-500">

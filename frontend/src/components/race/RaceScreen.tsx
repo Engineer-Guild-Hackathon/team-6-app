@@ -572,7 +572,6 @@ export default function RaceScreen() {
                   <span className="font-semibold">{selectedRace.name}</span>
                   <span className="mx-2">｜</span>
                   <span>期間: {formatActivePeriod()}</span>
-                  <span className="mx-2">｜</span>
                 </div>
 
                 {/* 簡易順位表 */}
