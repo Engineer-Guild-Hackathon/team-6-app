@@ -10,7 +10,7 @@ export async function getTodayStudySessionsFromUserId(userId: string): Promise<S
   const { data, error } = await supabase
     .from('study_sessions')
     .select('*')
-    .eq('userId', userId)
+    .eq('user_id', userId)
     .gte('date', startOfDay.toISOString())  // >= 今日の00:00
     .lt('date', endOfDay.toISOString());   // < 明日の00:00
 

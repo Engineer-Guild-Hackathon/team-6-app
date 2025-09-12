@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUserId';
 import { StudySession, SubjectWithId } from '../../types';
 import { getStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
+import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 export default function StudyTracker() {
   const { user, studySessions, addStudySession } = useAppContext();
@@ -85,7 +86,7 @@ export default function StudyTracker() {
 
       // CHANGED: alert -> toast.success
       toast.info(
-        `お疲れ様でした！\n${Math.floor(duration/60)}時間${duration%60}分勉強して${betCoinsEarned}ベットコインを獲得しました！`,
+        `お疲れ様でした！\n${convertMinutesToHours(duration)}勉強して${betCoinsEarned}ベットコインを獲得しました！`,
         {
           position: 'top-center',
           autoClose: 3500,
@@ -145,7 +146,7 @@ export default function StudyTracker() {
         </CardHeader>
         <CardContent>
           <div className="text-center">
-            <div className="text-8xl font-mono font-bold text-emerald-600 mb-6">
+            <div className="text-6xl md:text-8xl font-mono font-bold text-emerald-600 mb-6">
               {formatTime(time)}
             </div>
 
@@ -266,7 +267,7 @@ export default function StudyTracker() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      {Math.floor(session.duration / 60)}時間{session.duration % 60}分
+                      {convertMinutesToHours(session.duration)}
                     </p>
                     <p className="text-sm text-amber-600">
                       +{session.betCoinsEarned} BC

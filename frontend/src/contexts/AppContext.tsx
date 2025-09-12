@@ -109,9 +109,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateUser = async (updates: Partial<User>) => {
     // ユーザー情報を更新
     // Supabase への更新処理はここで行う
-    if(!state.user) return;
+    if (!state.user) return;
 
-    const {data, error} = await supabase
+    const { error } = await supabase
       .from('users')
       .update({
         username: updates.username,
@@ -120,14 +120,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         bet_coins: updates.betCoins,
         total_study_time: updates.totalStudyTime,
         current_week_study_time: updates.currentWeekStudyTime,
-        current_week_study_goal: updates.currentWeekStudyGoal, 
+        current_week_study_goal: updates.currentWeekStudyGoal,
         avatar: updates.avatar,
       })
       .eq('id', state.user.id)
       .select()
       .single();
-    
-    if(error) {
+
+    if (error) {
       console.error('Error updating user:', error.message);
       return;
     }
@@ -137,22 +137,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       Object.entries(updates).filter(([, v]) => v !== undefined)
     );
     dispatch({ type: 'UPDATE_USER', payload: cleanUpdates });
-    
   };
 
-  const updateUserSubjects = async (subjects: string[]): Promise<boolean>=> {
+  const updateUserSubjects = async (subjects: string[]): Promise<boolean> => {
     // ユーザーが勉強している科目を更新
     if (!state.user) return false;
 
     const userId = state.user.id;
 
     // 既存の user_subjects を削除してから新しい科目を挿入するRPC
-    const {error} = await supabase.rpc('replace_user_subjects', {
-      uid: userId, 
+    const { error } = await supabase.rpc('replace_user_subjects', {
+      uid: userId,
       subject_names: subjects
     });
 
-    if(error) {
+    if (error) {
       console.error('Error updating user subjects via RPC:', error.message);
       return false;
     }
@@ -163,7 +162,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addStudySession = async (session: Omit<StudySession, 'id'>) => {
-    if(!state.user) return;
+    if (!state.user) return;
     try {
       // RPC 呼び出し
       // 勉強セッションを追加，トランザクション追加，ユーザーの勉強時間とベットコインも更新してくれるRPC
@@ -193,18 +192,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const placeBet = (bet: Omit<Bet, 'id'>) => {
-    const newBet: Bet = {
-      ...bet,
-      id: Math.random().toString(36).substr(2, 9),
-    };
-    dispatch({ type: 'PLACE_BET', payload: newBet });
-    
-    // Deduct bet coins from user
-    if (state.user) {
-      updateUser({
-        betCoins: state.user.betCoins - bet.amount,
+  const placeBet = async (bet: Omit<Bet, 'id'>) => {
+    if (!state.user) return;
+    // ベットテーブルに追加
+    // トランザクションに追加
+    // ユーザーのベットコインを減らす
+    // 以上を実行するRPCを呼び出す
+    try {
+      const { error } = await supabase.rpc(`place_bet`, {
+        p_user_id: state.user.id,
+        p_race_id: bet.raceId,
+        p_participant_id: bet.participantId,
+        p_bet_type: bet.type,
+        p_amount: bet.amount,
       });
+      if (error) {
+        console.error('Error placing bet via RPC:', error.message);
+        return;
+      }
+
+      // 成功したらローカル state にも反映
+      const newBet: Bet = {
+        ...bet,
+        id: Math.random().toString(36).substr(2, 9),
+      };
+      dispatch({ type: 'PLACE_BET', payload: newBet });
+    } catch (err) {
+      console.error('Unexpected error placing bet:', err);
+      return;
     }
   };
 

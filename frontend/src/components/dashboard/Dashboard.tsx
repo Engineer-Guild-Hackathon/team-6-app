@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Clock, Coins, TrendingUp, Target, Trophy, Calendar } from 'lucide-react';
 import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
-import { StudySession } from '../../types';
+import { Race, StudySession } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
 import {
   getStudySessionsFromUserId,
   getRecentStudySessionsFromUserId,
 } from '../../utils/getStudySessionsFromUserId';
+import { getParticipantsFromRaceId } from '../../utils/getParticipantsFromRaceId';
+import { getRacesFromStatus } from '../../utils/getRacesFromStatus';
+import { getRaceFromId } from '../../utils/getRaceFromId';
 
 // 参加していない時の暫定ポイント換算
 const rankToPoints = (rank: number) => {
@@ -54,11 +57,10 @@ const formatRemaining = (ms: number) => {
 };
 
 export default function Dashboard() {
-  const { user, studySessions } = useAppContext();
+  const { user } = useAppContext();
   const [remainingText, setRemainingText] = useState<string>('');
-  const [todayStudySessions, setTodayStudySessions] = useState<StudySession[]>([]);
-  const [todayStudyTime, setTodayStudyTime] = useState(0);
-
+  const [todayStudyTime, setTodayStudyTime] = useState(0); // 今日の勉強時間[min]
+  const [race, setRace] = useState<Race | null>(null);
   // 曜日別の合計時間（h）
   const [weekDayHours, setWeekDayHours] = useState({
     mon: 0,
@@ -80,8 +82,6 @@ export default function Dashboard() {
     // 今日の勉強記録を抽出
     const fetchTodayStudySessions = async () => {
       const todayStudySessions = await getTodayStudySessionsFromUserId(user.id);
-      setTodayStudySessions(todayStudySessions);
-
       // duration は分保存なので /60 して時間に
       const totalToday = todayStudySessions.reduce((sum, session) => sum + session.duration, 0) / 60;
       setTodayStudyTime(totalToday);
@@ -150,9 +150,24 @@ export default function Dashboard() {
     { day: '日', hours: weekDayHours.sun },
   ];
 
-  const race = generateMockRace(user.inRace ? user : undefined);
-  const participants = race.participants;
-  const me = participants.find((p) => p.user.id === user.id);
+  useEffect(() => {
+    const fetchRace = async () => {
+      if (user.raceId) {
+        const fetchedRace = await getRaceFromId(user.raceId);
+        setRace(fetchedRace);
+        return;
+      }
+      const fetchedRaces = await getRacesFromStatus('active');
+      if (fetchedRaces.length > 0) {
+        setRace(fetchedRaces[0]);
+      } else {
+        setRace(null);
+      }
+    };
+    fetchRace();
+  }, [user]);
+  const participants = race?.participants || [];
+  const me = user;
 
   // 週間目標（DBは分保存）
   const weeklyGoalMinutes = user.currentWeekStudyGoal ?? 2400; // 40h = 2400分 フォールバック
@@ -168,8 +183,6 @@ export default function Dashboard() {
 
   // const perDayPoints = (user.weeklyRank ?? []).map(rankToPoints);
   // const totalPoints = perDayPoints.reduce((a, b) => a + b, 0);
-
-  const medal = (pos: number) => (pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '');
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -349,7 +362,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Race Status */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="h-5 w-5 text-amber-600" />
@@ -368,31 +381,31 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-center py-4">
               <div className="text-5xl mb-2">🏇</div>
-              <h3 className="font-semibold">{race.week}</h3>
+              <h3 className="font-semibold">{race.name}</h3>
               <p className="text-gray-600">残り時間: {remainingText}</p>
             </div>
 
             {user.inRace && me ? (
-              <div className="space-y-4">
+              <div className="space-y-4"> */}
                 {/* 優勝賞金（元デザイン） */}
-                <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
+                {/* <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
                   <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
                   <p className="text-2xl font-bold text-amber-900">
                     {race.totalPot.toLocaleString('ja-JP')} BC
                   </p>
-                </div>
+                </div> */}
 
                 {/* ▼順位表 全体をクリックで遷移（内部に <Link> は置かない） */}
-                {(() => {
-                  const first = participants[0];
+                {/* {(() => {
+                  const first = participants![0];
                   const diffToFirstHours = Math.max(
                     0,
                     (first?.currentStudyTime ?? 0) - (me?.currentStudyTime ?? 0)
                   );
 
-                  const top3 = participants.slice(0, 3);
+                  const top3 = participants!.slice(0, 3);
                   const rows =
-                    me && me.position > 3 ? [...top3, me] : [...top3, participants[3]].filter(Boolean);
+                    me && me.position > 3 ? [...top3, me] : [...top3, participants![3]].filter(Boolean);
 
                   const seen = new Set<string>();
                   const list = rows.filter((p) => !seen.has(p.user.id) && (seen.add(p.user.id), true));
@@ -440,10 +453,10 @@ export default function Dashboard() {
                                     あなた
                                   </span>
                                 )}
-                              </div>
+                              </div> */}
 
                               {/* 自分の行だけ 1位との差 */}
-                              <div className="shrink-0">
+                              {/* <div className="shrink-0">
                                 {isMe ? (
                                   <span className="text-base text-gray-600">
                                     − 1位との差 {diffToFirstHours}時間
@@ -461,16 +474,16 @@ export default function Dashboard() {
                 })()}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
                 {/* ▼左：順位表（全体クリックで遷移・1位差は表示しない） */}
-                <Link
+                {/* <Link
                   to={`/races/${race.id}`}
                   className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   aria-label="順位表を開いてレースページへ移動"
                 >
                   <p className="text-xs text-gray-500 mb-3">順位表</p>
                   <ul className="space-y-2">
-                    {race.participants.slice(0, 3).map((p) => {
+                    {race.participants!.slice(0, 3).map((p) => {
                       const medal = p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : '🥉';
                       return (
                         <li
@@ -497,7 +510,7 @@ export default function Dashboard() {
                       );
                     })}
                   </ul>
-                </Link>
+                </Link> */}
 
                 {/* 右：ポイント合計（従来デザインのまま）
                 <div className="rounded-xl border border-gray-100 p-4">
@@ -510,30 +523,11 @@ export default function Dashboard() {
                     <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
                   </div>
                 </div> */}
-              </div>
+              {/* </div>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
-
-      {/* Study Subjects
-      <Card className="mt-8 rounded-2xl border border-gray-100 shadow-sm">
-        <CardHeader>
-          <CardTitle>勉強科目</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {user.studySubjects.map((subject: string, index: number) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
-              >
-                {subject}
-              </span>
-            ))}
-          </div>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }
