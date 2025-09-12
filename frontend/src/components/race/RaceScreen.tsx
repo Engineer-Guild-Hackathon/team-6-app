@@ -526,7 +526,7 @@ export default function RaceScreen() {
                             複勝 {p.placeOdds ? p.placeOdds : '-'}倍
                           </span>
                         </div>
-                        <div className='flex flex-col items-start'>
+                        <div className='flex flex-col '>
                           <Button
                             onClick={() => {
                               setBettedParticipant(p);
