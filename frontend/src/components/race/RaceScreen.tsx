@@ -573,7 +573,6 @@ export default function RaceScreen() {
                   <span className="mx-2">｜</span>
                   <span>期間: {formatActivePeriod()}</span>
                   <span className="mx-2">｜</span>
-                  <span>出走 {selectedParticipants.length}人</span>
                 </div>
 
                 {/* 簡易順位表 */}

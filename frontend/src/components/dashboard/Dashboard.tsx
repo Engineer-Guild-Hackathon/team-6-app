@@ -515,7 +515,7 @@ export default function Dashboard() {
                 {/* ▼左：順位表（全体クリックで遷移・1位差は表示しない） */}
                 <Link
                   to={`/races/${race?.id}`}
-                  className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  className="md:col-span-2 block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   aria-label="順位表を開いてレースページへ移動"
                 >
                   <p className="text-xs text-gray-500 mb-3">順位表</p>
