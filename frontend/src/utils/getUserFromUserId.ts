@@ -17,7 +17,6 @@ export async function getUserFromUserId(userId: string): Promise<User | null> {
   const mappedUser: User = {
     id: data.id,
     username: data.username,
-    email: data.email,
     age: data.age,
     occupation: data.occupation,
     betCoins: data.bet_coins,

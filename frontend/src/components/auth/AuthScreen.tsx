@@ -79,7 +79,6 @@ export default function AuthScreen() {
     // usersテーブルにも追加
     const { error: tableError } = await supabase.from('users').insert([{
       id: data.user.id,
-      email: formData.email,
       username: formData.username,
       age: formData.age ? parseInt(formData.age) : null,
       occupation: formData.occupation,
@@ -89,10 +88,15 @@ export default function AuthScreen() {
       setLoading(false);
       return;
     }
-    setMessage('登録成功！Supabaseで確認せよ');
+    setMessage('登録成功！');
     setLoading(false);
     setHasAccount(true);
-
+    const user = await getUserFromUserId(data.user.id);
+    if (!user) {
+      setMessage('ユーザー情報の取得に失敗しました');
+      return;
+    }
+    login(user);
   };
 
   const handleDemoLogin = () => {
