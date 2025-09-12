@@ -3,6 +3,7 @@ import { Coins, Trophy, Crown, Medal, Award, TrendingUp, RefreshCw } from 'lucid
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { useAppContext } from '../../contexts/AppContext';
 import { getUsersByBetCoins, getUsersByStudyTime } from '../../utils/getRankings';
+import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 export default function RankingScreen() {
   const { user } = useAppContext();
@@ -127,7 +128,7 @@ export default function RankingScreen() {
               <p className="text-gray-600">
                 {selectedTab === 'coins' 
                   ? `${user.betCoins.toLocaleString()} BC`
-                  : `${Math.floor(user.totalStudyTime / 60)}時間${user.totalStudyTime % 60}分`
+                  : convertMinutesToHours(user.totalStudyTime)
                 }
               </p>
             </div>
@@ -178,7 +179,7 @@ export default function RankingScreen() {
                     ) : (
                       <div>
                         <p className="text-xl font-bold text-emerald-600">
-                          {Math.floor(rankUser.totalStudyTime / 60)}時間{rankUser.totalStudyTime % 60}分
+                          {convertMinutesToHours(rankUser.totalStudyTime)}
                         </p>
                       </div>
                     )}

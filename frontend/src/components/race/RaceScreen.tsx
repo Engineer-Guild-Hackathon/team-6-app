@@ -17,6 +17,7 @@ import BettingModal from './BettingModal';
 import { Race, RaceStatus, UserPrivate } from '../../types';
 import { getRacesFromStatus } from '../../utils/getRacesFromStatus';
 import { getParticipantsFromRaceId } from '../../utils/getParticipantsFromRaceId';
+import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 type RaceTheme = 'default' | 'keiba';
 
@@ -262,7 +263,7 @@ export default function RaceScreen() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xl font-bold text-emerald-600">{Math.floor(participant.currentWeekStudyTime / 60)}時間 {participant.currentWeekStudyTime % 60}分</p>
+            <p className="text-xl font-bold text-emerald-600">{convertMinutesToHours(participant.currentWeekStudyTime)}</p>
             {/* TODO: oddsはこれから調整 */}
             {/* <div className="text-sm text-gray-600">単勝 {participant.odds.win}倍</div> */}
           </div>
@@ -525,15 +526,27 @@ export default function RaceScreen() {
                             複勝 {p.placeOdds ? p.placeOdds : '-'}倍
                           </span>
                         </div>
-                        <Button
-                          onClick={() => {
-                            setBettedParticipant(p);
-                            setShowBettingModal(true);
-                          }}
-                          disabled={user.betCoins < 100 || !p.winOdds || !p.placeOdds}
-                        >
-                          ベットする
-                        </Button>
+                        <div className='flex flex-col items-start'>
+                          <Button
+                            onClick={() => {
+                              setBettedParticipant(p);
+                              setShowBettingModal(true);
+                            }}
+                            disabled={user.betCoins < 100 || !p.winOdds || !p.placeOdds}
+                          >
+                            ベットする
+                          </Button>
+                          {/* ボタン下に小さくステータスメッセージ */}
+                          {(user.betCoins < 100 || !p.winOdds || !p.placeOdds) && (
+                            <div className="text-xs text-red-500 mt-1">
+                              {user.betCoins < 100
+                                ? "コインが100未満です"
+                                : (!p.winOdds || !p.placeOdds)
+                                  ? "オッズを取得してください"
+                                  : ""}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

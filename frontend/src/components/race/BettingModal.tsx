@@ -6,6 +6,7 @@ import { useAppContext } from '../../contexts/AppContext';
 // 先頭で追加
 import { toast } from 'react-toastify';
 import { BetType, UserPrivate } from '../../types';
+import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 interface BettingModalProps {
   participant: UserPrivate; // ベットされた参加者
@@ -104,7 +105,7 @@ export default function BettingModal({ participant, raceId, onClose, userBalance
               <h3 className="text-xl font-semibold">{participant.username}</h3>
               <p className="text-gray-600">{participant.age}歳 {participant.occupation}</p>
               <p className="text-emerald-600 font-bold mt-2">
-                現在勉強時間: {participant.currentWeekStudyTime}時間
+                今週の勉強時間: {convertMinutesToHours(participant.currentWeekStudyTime)}
               </p>
             </div>
 
