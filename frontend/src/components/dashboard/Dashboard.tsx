@@ -10,7 +10,6 @@ import {
   getRecentStudySessionsFromUserId,
 } from '../../utils/getStudySessionsFromUserId';
 import { getParticipantsFromRaceId } from '../../utils/getParticipantsFromRaceId';
-import { RankedUserPrivate } from '../../utils/getParticipantsFromRaceId';
 import { getRacesFromStatus } from '../../utils/getRacesFromStatus';
 import { getRaceFromId } from '../../utils/getRaceFromId';
 
@@ -139,7 +138,7 @@ export default function Dashboard() {
   }, []);
 
   // ===== 順位表のための参加者取得 =====
-  const [participants, setParticipants] = useState<RankedUserPrivate[]>([]);
+  const [participants, setParticipants] = useState<UserPrivate[]>([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [participantsError, setParticipantsError] = useState<string | null>(null);
 
@@ -425,8 +424,9 @@ export default function Dashboard() {
                   );
 
                   const top3 = participants.slice(0, 3);
+                  const meIndex = meRow ? participants.findIndex(p => p.id === meRow.id) : -1;
                   const rows =
-                    meRow && meRow.position > 3
+                    meRow && meIndex > 2
                       ? [...top3, meRow]
                       : [...top3, participants[3]].filter(Boolean);
 
@@ -447,12 +447,13 @@ export default function Dashboard() {
                           const isMe = p.id === user.id;
 
                           // ★ 1〜3位の色分け
+                          const rank = participants.findIndex(x => x.id === p.id) + 1; // 配列順=順位
                           const rankStyle =
-                            p.position === 1
+                            rank === 1
                               ? "border-yellow-300 bg-yellow-50"
-                              : p.position === 2
+                              : rank === 2
                               ? "border-gray-300 bg-gray-50"
-                              : p.position === 3
+                              : rank === 3
                               ? "border-orange-300 bg-orange-50"
                               : "border-gray-100 bg-white";
 
@@ -467,7 +468,7 @@ export default function Dashboard() {
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className="w-8 text-right tabular-nums text-gray-500">
-                                  {p.position}.
+                                  {rank}.
                                 </span>
                                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
                                   {p.avatar}
@@ -531,25 +532,24 @@ export default function Dashboard() {
                     ) : participants.length === 0 ? (
                       <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
                     ) : (
-                      participants.slice(0, 3).map((p) => {
-                        // ★ 1〜3位の色分け
+                      // ★ ここがポイント：slice(0,3)は不要
+                      participants.map((p, i) => {
+                        const rank = i + 1; // 配列順 = 順位
                         const rankStyle =
-                          p.position === 1
+                          rank === 1
                             ? "border-yellow-300 bg-yellow-50"
-                            : p.position === 2
+                            : rank === 2
                             ? "border-gray-300 bg-gray-50"
-                            : p.position === 3
-                            ? "border-orange-300 bg-orange-50"
-                            : "border-gray-100 bg-white";
+                            : "border-orange-300 bg-orange-50";
 
                         return (
                           <li
                             key={p.id}
-                            className={["flex items-center justify-between rounded-lg border px-3 py-2.5", rankStyle].join(' ')}
+                            className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${rankStyle}`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="w-8 text-right tabular-nums text-gray-500">
-                                {p.position}.
+                                {rank}.
                               </span>
                               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
                                 {p.avatar}
