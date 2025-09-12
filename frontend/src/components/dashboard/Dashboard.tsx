@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Clock, Coins, TrendingUp, Target, Trophy, Calendar } from 'lucide-react';
 import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
-import { Race, StudySession } from '../../types';
+import { Race, StudySession, UserPrivate } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
 import {
   getStudySessionsFromUserId,
@@ -138,6 +138,32 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
+  // ===== 順位表のための参加者取得 =====
+  const [participants, setParticipants] = useState<UserPrivate[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [participantsError, setParticipantsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!race?.id) {
+        setParticipants([]);
+        return;
+      }
+      try {
+        setParticipantsLoading(true);
+        setParticipantsError(null);
+        const list = await getParticipantsFromRaceId(race.id);
+        if (alive) setParticipants(list);
+      } catch (e: any) {
+        if (alive) setParticipantsError(e.message ?? '参加者の取得に失敗しました');
+      } finally {
+        if (alive) setParticipantsLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [race?.id]);
+
   // 棒グラフ表示用
   const MAX_DAILY = 6; // 6時間勉強すれば緑で棒グラフが満たされる
   const weeklyProgress = [
@@ -166,7 +192,7 @@ export default function Dashboard() {
     };
     fetchRace();
   }, [user]);
-  const participants = race?.participants || [];
+
   const me = user;
 
   // 週間目標（DBは分保存）
@@ -385,29 +411,31 @@ export default function Dashboard() {
               <p className="text-gray-600">残り時間: {remainingText}</p>
             </div>
 
-            {user.inRace && me ? (
+            {user.inRace ? (
               <div className="space-y-4">
                 {/* ▼順位表 全体をクリックで遷移（内部に <Link> は置かない） */}
                 {(() => {
-                  const first = participants![0];
+                  const first = participants[0];
+                  const meRow = participants.find((p) => p.id === user.id) || null;
+
+                  // 1位との差（時間）
                   const diffToFirstHours = Math.max(
                     0,
-                    (first?.currentStudyTime ?? 0) - (me?.currentStudyTime ?? 0)
+                    Math.floor(
+                      ((first?.currentWeekStudyTime ?? 0) - (meRow?.currentWeekStudyTime ?? 0)) / 60
+                    )
                   );
 
-                  const top3 = participants!.slice(0, 3);
+                  const top3 = participants.slice(0, 3);
                   const rows =
-                    me && me.position > 3
-                      ? [...top3, me]
-                      : [...top3, participants![3]].filter(Boolean);
+                    meRow && meRow.position > 3
+                      ? [...top3, meRow]
+                      : [...top3, participants[3]].filter(Boolean);
 
                   const seen = new Set<string>();
                   const list = rows.filter(
-                    (p) => !seen.has(p.user.id) && (seen.add(p.user.id), true)
+                    (p: any) => !seen.has(p.id) && (seen.add(p.id), true)
                   );
-
-                  const medal = (pos: number) =>
-                    pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "";
 
                   return (
                     <Link
@@ -418,10 +446,10 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-500 mb-3">順位表</p>
                       <ul className="space-y-2">
                         {list.map((p) => {
-                          const isMe = p.user.id === user.id;
+                          const isMe = p.id === user.id;
                           return (
                             <li
-                              key={p.user.id}
+                              key={p.id}
                               className={[
                                 "flex items-center justify-between rounded-lg border",
                                 "border-gray-100 bg-white px-3 py-2.5",
@@ -432,9 +460,8 @@ export default function Dashboard() {
                                 <span className="w-8 text-right tabular-nums text-gray-500">
                                   {p.position}.
                                 </span>
-                                <span className="w-6 text-center">{medal(p.position)}</span>
                                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
-                                  {p.user.avatar}
+                                  {p.avatar}
                                 </span>
                                 <span
                                   className={[
@@ -443,9 +470,9 @@ export default function Dashboard() {
                                       ? "font-semibold text-gray-900"
                                       : "font-medium text-gray-800",
                                   ].join(" ")}
-                                  title={p.user.username}
+                                  title={p.username}
                                 >
-                                  {p.user.username}
+                                  {p.username}
                                 </span>
                                 {isMe && (
                                   <span className="ml-2 shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
@@ -462,8 +489,8 @@ export default function Dashboard() {
                                   </span>
                                 ) : (
                                   <span className="text-sm text-transparent select-none">
-                                    _
-                                  </span>
+                                      _
+                                    </span>
                                 )}
                               </div>
                             </li>
@@ -484,33 +511,42 @@ export default function Dashboard() {
                 >
                   <p className="text-xs text-gray-500 mb-3">順位表</p>
                   <ul className="space-y-2">
-                    {race?.participants?.slice(0, 3).map((p) => {
-                      const medal =
-                        p.position === 1 ? "🥇" : p.position === 2 ? "🥈" : "🥉";
-                      return (
-                        <li
-                          key={p.user.id}
-                          className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-8 text-right tabular-nums text-gray-500">
-                              {p.position}.
-                            </span>
-                            <span className="w-6 text-center">{medal}</span>
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
-                              {p.user.avatar}
-                            </span>
-                            <span
-                              className="truncate text-base md:text-lg font-medium text-gray-800"
-                              title={p.user.username}
-                            >
-                              {p.user.username}
-                            </span>
-                          </div>
-                          <span className="text-sm text-transparent select-none">_</span>
-                        </li>
-                      );
-                    })}
+                    {participantsLoading ? (
+                      <>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-3/4" /></li>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-2/3" /></li>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-1/2" /></li>
+                      </>
+                    ) : participantsError ? (
+                      <li className="py-2 text-sm text-red-600">{participantsError}</li>
+                    ) : participants.length === 0 ? (
+                      <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
+                    ) : (
+                      participants.slice(0, 3).map((p) => {
+                        return (
+                          <li
+                            key={p.id}
+                            className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-right tabular-nums text-gray-500">
+                                {p.position}.
+                              </span>
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
+                                {p.avatar}
+                              </span>
+                              <span
+                                className="truncate text-base md:text-lg font-medium text-gray-800"
+                                title={p.username}
+                              >
+                                {p.username}
+                              </span>
+                            </div>
+                            <span className="text-sm text-transparent select-none">_</span>
+                          </li>
+                        );
+                      })
+                    )}
                   </ul>
                 </Link>
               </div>
@@ -518,21 +554,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-                {/* 右：ポイント合計（従来デザインのまま）
-                <div className="rounded-xl border border-gray-100 p-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <div className="flex justify-between">
-                      <span>日別内訳</span>
-                      <span>{perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
-                  </div>
-                </div> */}
-              {/* </div>
-            )}
-          </CardContent>
-        </Card> */}
+        {/* 右：ポイント合計（従来デザインのまま）
+        <div className="rounded-xl border border-gray-100 p-4">
+          <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
+          <div className="text-sm text-gray-700 space-y-1">
+            <div className="flex justify-between">
+              <span>日別内訳</span>
+              <span>{perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
+          </div>
+        </div> */}
       </div>
     </div>
   );
