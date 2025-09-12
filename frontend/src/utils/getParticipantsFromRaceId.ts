@@ -4,7 +4,20 @@ import { UserPrivate } from "../types";
 export const getParticipantsFromRaceId = async (raceId: string): Promise<UserPrivate[]> => {
   const { data, error } = await supabase
     .from("race_participants")
-    .select("user_id, users(username, avatar, age, occupation, bet_coins, total_study_time, current_week_study_time)")
+    .select(
+      `
+      user_id,
+      users:users(
+        username,
+        avatar,
+        age,
+        occupation,
+        bet_coins,
+        total_study_time,
+        current_week_study_time
+      )
+    `
+    )
     .eq("race_id", raceId);
 
   if (!data) {
