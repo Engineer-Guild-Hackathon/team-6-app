@@ -245,7 +245,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="h-full rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center tex-center justify-between">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
               <Clock className="h-7 w-7 text-emerald-500" />
             </div>
@@ -447,12 +447,23 @@ export default function Dashboard() {
                       <ul className="space-y-2">
                         {list.map((p) => {
                           const isMe = p.id === user.id;
+
+                          // ★ 1〜3位の色分け
+                          const rankStyle =
+                            p.position === 1
+                              ? "border-yellow-300 bg-yellow-50"
+                              : p.position === 2
+                              ? "border-gray-300 bg-gray-50"
+                              : p.position === 3
+                              ? "border-orange-300 bg-orange-50"
+                              : "border-gray-100 bg-white";
+
                           return (
                             <li
                               key={p.id}
                               className={[
-                                "flex items-center justify-between rounded-lg border",
-                                "border-gray-100 bg-white px-3 py-2.5",
+                                "flex items-center justify-between rounded-lg border px-3 py-2.5",
+                                rankStyle,
                                 isMe ? "ring-1 ring-emerald-200/60" : "",
                               ].join(" ")}
                             >
@@ -466,9 +477,9 @@ export default function Dashboard() {
                                 <span
                                   className={[
                                     "truncate text-base md:text-lg",
-                                    isMe
-                                      ? "font-semibold text-gray-900"
-                                      : "font-medium text-gray-800",
+                                    isMe 
+                                    ? "font-semibold text-gray-900" 
+                                    : "font-medium text-gray-800",
                                   ].join(" ")}
                                   title={p.username}
                                 >
@@ -489,8 +500,8 @@ export default function Dashboard() {
                                   </span>
                                 ) : (
                                   <span className="text-sm text-transparent select-none">
-                                      _
-                                    </span>
+                                    _
+                                  </span>
                                 )}
                               </div>
                             </li>
@@ -523,10 +534,20 @@ export default function Dashboard() {
                       <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
                     ) : (
                       participants.slice(0, 3).map((p) => {
+                        // ★ 1〜3位の色分け
+                        const rankStyle =
+                          p.position === 1
+                            ? "border-yellow-300 bg-yellow-50"
+                            : p.position === 2
+                            ? "border-gray-300 bg-gray-50"
+                            : p.position === 3
+                            ? "border-orange-300 bg-orange-50"
+                            : "border-gray-100 bg-white";
+
                         return (
                           <li
                             key={p.id}
-                            className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5"
+                            className={["flex items-center justify-between rounded-lg border px-3 py-2.5", rankStyle].join(' ')}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="w-8 text-right tabular-nums text-gray-500">
