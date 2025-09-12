@@ -1,4 +1,3 @@
-import React from 'react';
 import { Coins, Trophy, Clock, BarChart3, User } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 

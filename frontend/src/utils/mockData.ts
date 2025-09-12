@@ -6,7 +6,6 @@ export const mockUsers: User[] = [
   {
     id: '1',
     username: 'yamada_taro',
-    email: 'yamada@example.com',
     age: 25,
     occupation: '会社員',
     betCoins: 2500,
@@ -19,7 +18,6 @@ export const mockUsers: User[] = [
   {
     id: '2',
     username: 'sakura_chan',
-    email: 'sakura@example.com',
     age: 17,
     occupation: '高校生',
     betCoins: 1800,
@@ -32,7 +30,6 @@ export const mockUsers: User[] = [
   {
     id: '3',
     username: 'coding_master',
-    email: 'master@example.com',
     age: 28,
     occupation: 'エンジニア',
     betCoins: 3200,
@@ -45,7 +42,6 @@ export const mockUsers: User[] = [
   {
     id: '4',
     username: 'study_queen',
-    email: 'queen@example.com',
     age: 22,
     occupation: '大学生',
     betCoins: 2100,
@@ -58,7 +54,6 @@ export const mockUsers: User[] = [
   {
     id: '5',
     username: 'sensei_san',
-    email: 'sensei@example.com',
     age: 35,
     occupation: '教師',
     betCoins: 1900,
@@ -77,7 +72,6 @@ export function generateMockRace(currentUser?: User): Race {
     ...Array(10).fill(null).map((_, i) => ({
       id: `user_${i + 6}`,
       username: `user_${i + 6}`,
-      email: `user${i + 6}@example.com`,
       age: Math.floor(Math.random() * 20) + 18,
       occupation: Math.random() > 0.5 ? '会社員' : '学生',
       grade: Math.random() > 0.5 ? '社会人' : '学生',
@@ -113,13 +107,12 @@ export function getCurrentUser(): User {
   return {
     id: 'current_user',
     username: 'あなた',
-    email: 'you@example.com',
     age: 24,
     occupation: '大学生',
     betCoins: 1500,
-    totalStudyTime: 85,
-    currentWeekStudyTime: 10,
-    currentWeekStudyGoal: 20,
+    totalStudyTime: 10000,
+    currentWeekStudyTime: 780,
+    currentWeekStudyGoal: 900,
     avatar: '🎯',
     createdAt: '2024-01-01',
     inRace: true, 

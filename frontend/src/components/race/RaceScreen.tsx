@@ -526,7 +526,7 @@ export default function RaceScreen() {
                             複勝 {p.placeOdds ? p.placeOdds : '-'}倍
                           </span>
                         </div>
-                        <div className='flex flex-col items-start'>
+                        <div className='flex flex-col '>
                           <Button
                             onClick={() => {
                               setBettedParticipant(p);
@@ -565,15 +565,63 @@ export default function RaceScreen() {
           </CardHeader>
           <CardContent>
             {selectedRaces.length > 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <div >
-                  <p>
-                    TODO: ここに選択された過去のレース結果の詳細をリッチに表示する
-                    <br />
-                    例えば順位表とオッズなど
-                  </p>
+              // 今週の勉強時間で設定されているので、そのレースのスコアを残す必要がある。
+              <>
+                {/* レース概要 */}
+                <div className="mb-4 text-sm text-gray-700">
+                  <span className="font-semibold">{selectedRace.name}</span>
+                  <span className="mx-2">｜</span>
+                  <span>期間: {formatActivePeriod()}</span>
                 </div>
-              </div>
+
+                {/* 簡易順位表 */}
+                <div className="space-y-3">
+                  {[...selectedParticipants]
+                    .sort((a, b) => b.currentWeekStudyTime - a.currentWeekStudyTime)
+                    .map((p, idx) => (
+                      <div
+                        key={p.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          idx === 0
+                            ? 'bg-yellow-50 border-yellow-200'
+                            : idx === 1
+                            ? 'bg-gray-50 border-gray-200'
+                            : idx === 2
+                            ? 'bg-orange-50 border-orange-200'
+                            : 'bg-white border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                              idx === 0
+                                ? 'bg-yellow-500 text-white'
+                                : idx === 1
+                                ? 'bg-gray-500 text-white'
+                                : idx === 2
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {idx + 1}
+                          </div>
+                          <div className="text-2xl">{p.avatar}</div>
+                          <div>
+                            <div className="font-semibold">{p.username}</div>
+                            <div className="text-xs text-gray-600">
+                              {p.age}歳 {p.occupation}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-emerald-600">
+                            {convertMinutesToHours(p.currentWeekStudyTime)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </>
             ) : (
               <div className="text-center py-8 text-gray-500">
                 過去のレース結果はまだありません。

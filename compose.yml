@@ -10,7 +10,7 @@ services:
     depends_on:
       - backend
     env_file:
-      - .env
+      - .env.development
 
   backend:
     build: ./backend

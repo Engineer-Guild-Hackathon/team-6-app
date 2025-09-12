@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Clock, Coins, TrendingUp, Target, Trophy, Calendar } from 'lucide-react';
-import { generateMockRace } from '../../utils/mockData';
 import { Link } from 'react-router-dom';
-import { Race, StudySession } from '../../types';
+import { Race, StudySession, UserPrivate } from '../../types';
 import { getTodayStudySessionsFromUserId } from '../../utils/getTodayStudySessionsFromUserId';
 import {
   getStudySessionsFromUserId,
@@ -14,7 +13,7 @@ import { getParticipantsFromRaceId } from '../../utils/getParticipantsFromRaceId
 import { getRacesFromStatus } from '../../utils/getRacesFromStatus';
 import { getRaceFromId } from '../../utils/getRaceFromId';
 
-// 参加していない時の暫定ポイント換算
+// ベット参加時の暫定ポイント換算(仮のスコア)
 const rankToPoints = (rank: number) => {
   if (rank === 1) return 100;
   if (rank === 2) return 70;
@@ -126,7 +125,7 @@ export default function Dashboard() {
     };
   }, [user]);
 
-  // 残り時間を毎秒更新（リロード不要）
+  // 残り時間を毎分更新（リロード不要）
   useEffect(() => {
     const update = () => {
       const end = getThisWeekEndLocal();
@@ -134,9 +133,35 @@ export default function Dashboard() {
       setRemainingText(formatRemaining(end.getTime() - now.getTime()));
     };
     update(); // 初期表示
-    const id = setInterval(update, 1000); // 毎秒更新
+    const id = setInterval(update, 60000); // 毎分更新
     return () => clearInterval(id);
   }, []);
+
+  // ===== 順位表のための参加者取得 =====
+  const [participants, setParticipants] = useState<UserPrivate[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [participantsError, setParticipantsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!race?.id) {
+        setParticipants([]);
+        return;
+      }
+      try {
+        setParticipantsLoading(true);
+        setParticipantsError(null);
+        const list = await getParticipantsFromRaceId(race.id);
+        if (alive) setParticipants(list);
+      } catch (e: any) {
+        if (alive) setParticipantsError(e.message ?? '参加者の取得に失敗しました');
+      } finally {
+        if (alive) setParticipantsLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [race?.id]);
 
   // 棒グラフ表示用
   const MAX_DAILY = 6; // 6時間勉強すれば緑で棒グラフが満たされる
@@ -166,8 +191,6 @@ export default function Dashboard() {
     };
     fetchRace();
   }, [user]);
-  const participants = race?.participants || [];
-  const me = user;
 
   // 週間目標（DBは分保存）
   const weeklyGoalMinutes = user.currentWeekStudyGoal ?? 2400; // 40h = 2400分 フォールバック
@@ -219,7 +242,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="h-full rounded-2xl shadow-md border border-gray-100">
-          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center tex-center justify-between">
+          <CardContent className="h-full pt-6 pb-6 px-4 sm:px-6 flex flex-col items-center text-center justify-between">
             <div className="h-14 w-14 flex items-center justify-center rounded-full bg-emerald-50 mb-2 sm:mb-3">
               <Clock className="h-7 w-7 text-emerald-500" />
             </div>
@@ -362,7 +385,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Race Status */}
-        {/* <Card>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="h-5 w-5 text-amber-600" />
@@ -381,88 +404,103 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-center py-4">
               <div className="text-5xl mb-2">🏇</div>
-              <h3 className="font-semibold">{race.name}</h3>
+              <h3 className="font-semibold">{race?.name}</h3>
               <p className="text-gray-600">残り時間: {remainingText}</p>
             </div>
 
-            {user.inRace && me ? (
-              <div className="space-y-4"> */}
-                {/* 優勝賞金（元デザイン） */}
-                {/* <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4">
-                  <p className="text-sm text-amber-800 font-medium">優勝賞金</p>
-                  <p className="text-2xl font-bold text-amber-900">
-                    {race.totalPot.toLocaleString('ja-JP')} BC
-                  </p>
-                </div> */}
-
+            {user.inRace ? (
+              <div className="space-y-4">
                 {/* ▼順位表 全体をクリックで遷移（内部に <Link> は置かない） */}
-                {/* {(() => {
-                  const first = participants![0];
+                {(() => {
+                  const first = participants[0];
+                  const meRow = participants.find((p) => p.id === user.id) || null;
+
+                  // 1位との差（時間）
                   const diffToFirstHours = Math.max(
                     0,
-                    (first?.currentStudyTime ?? 0) - (me?.currentStudyTime ?? 0)
+                    Math.floor(
+                      ((first?.currentWeekStudyTime ?? 0) - (meRow?.currentWeekStudyTime ?? 0)) / 60
+                    )
                   );
 
-                  const top3 = participants!.slice(0, 3);
+                  const top3 = participants.slice(0, 3);
+                  const meIndex = meRow ? participants.findIndex(p => p.id === meRow.id) : -1;
                   const rows =
-                    me && me.position > 3 ? [...top3, me] : [...top3, participants![3]].filter(Boolean);
+                    meRow && meIndex > 2
+                      ? [...top3, meRow]
+                      : [...top3, participants[3]].filter(Boolean);
 
                   const seen = new Set<string>();
-                  const list = rows.filter((p) => !seen.has(p.user.id) && (seen.add(p.user.id), true));
-                  const medal = (pos: number) =>
-                    pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '';
+                  const list = rows.filter(
+                    (p: any) => !seen.has(p.id) && (seen.add(p.id), true)
+                  );
 
                   return (
                     <Link
-                      to={`/races/${race.id}`}
+                      to={`/races/${race?.id}`}
                       className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                       aria-label="順位表を開いてレースページへ移動"
                     >
                       <p className="text-xs text-gray-500 mb-3">順位表</p>
                       <ul className="space-y-2">
                         {list.map((p) => {
-                          const isMe = p.user.id === user.id;
+                          const isMe = p.id === user.id;
+
+                          // ★ 1〜3位の色分け
+                          const rank = participants.findIndex(x => x.id === p.id) + 1; // 配列順=順位
+                          const rankStyle =
+                            rank === 1
+                              ? "border-yellow-300 bg-yellow-50"
+                              : rank === 2
+                              ? "border-gray-300 bg-gray-50"
+                              : rank === 3
+                              ? "border-orange-300 bg-orange-50"
+                              : "border-gray-100 bg-white";
+
                           return (
                             <li
-                              key={p.user.id}
+                              key={p.id}
                               className={[
-                                "flex items-center justify-between rounded-lg border",
-                                "border-gray-100 bg-white px-3 py-2.5",
+                                "flex items-center justify-between rounded-lg border px-3 py-2.5",
+                                rankStyle,
                                 isMe ? "ring-1 ring-emerald-200/60" : "",
                               ].join(" ")}
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className="w-8 text-right tabular-nums text-gray-500">
-                                  {p.position}.
+                                  {rank}.
                                 </span>
-                                <span className="w-6 text-center">{medal(p.position)}</span>
                                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
-                                  {p.user.avatar}
+                                  {p.avatar}
                                 </span>
                                 <span
                                   className={[
-                                    'truncate text-base md:text-lg',
-                                    isMe ? 'font-semibold text-gray-900' : 'font-medium text-gray-800',
-                                  ].join(' ')}
-                                  title={p.user.username}
+                                    "truncate text-base md:text-lg",
+                                    isMe 
+                                    ? "font-semibold text-gray-900" 
+                                    : "font-medium text-gray-800",
+                                  ].join(" ")}
+                                  title={p.username}
                                 >
-                                  {p.user.username}
+                                  {p.username}
                                 </span>
                                 {isMe && (
                                   <span className="ml-2 shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
                                     あなた
                                   </span>
                                 )}
-                              </div> */}
+                              </div>
 
                               {/* 自分の行だけ 1位との差 */}
-                              {/* <div className="shrink-0">
+                              <div className="shrink-0">
                                 {isMe ? (
                                   <span className="text-base text-gray-600">
                                     − 1位との差 {diffToFirstHours}時間
                                   </span>
                                 ) : (
-                                  <span className="text-sm text-transparent select-none">_</span>
+                                  <span className="text-sm text-transparent select-none">
+                                    _
+                                  </span>
                                 )}
                               </div>
                             </li>
@@ -474,59 +512,81 @@ export default function Dashboard() {
                 })()}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
-                {/* ▼左：順位表（全体クリックで遷移・1位差は表示しない） */}
-                {/* <Link
-                  to={`/races/${race.id}`}
-                  className="block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* ▼ベット参加時（user.inRace === false） */}
+                {/* 左：順位表（全体クリックで遷移・1位差は表示しない） */}
+                <Link
+                  to={`/races/${race?.id}`}
+                  className="md:col-span-2 block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
                   aria-label="順位表を開いてレースページへ移動"
                 >
                   <p className="text-xs text-gray-500 mb-3">順位表</p>
                   <ul className="space-y-2">
-                    {race.participants!.slice(0, 3).map((p) => {
-                      const medal = p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : '🥉';
-                      return (
-                        <li
-                          key={p.user.id}
-                          className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2.5"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-8 text-right tabular-nums text-gray-500">
-                              {p.position}.
-                            </span>
-                            <span className="w-6 text-center">{medal}</span>
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
-                              {p.user.avatar}
-                            </span>
-                            <span
-                              className="truncate text-base md:text-lg font-medium text-gray-800"
-                              title={p.user.username}
-                            >
-                              {p.user.username}
-                            </span>
-                          </div>
-                          <span className="text-sm text-transparent select-none">_</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </Link> */}
+                    {participantsLoading ? (
+                      <>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-3/4" /></li>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-2/3" /></li>
+                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-1/2" /></li>
+                      </>
+                    ) : participantsError ? (
+                      <li className="py-2 text-sm text-red-600">{participantsError}</li>
+                    ) : participants.length === 0 ? (
+                      <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
+                    ) : (
+                      participants.slice(0, 3).map((p, i) => {
+                        const rank = i + 1; // 配列順 = 順位
+                        const rankStyle =
+                          rank === 1
+                            ? "border-yellow-300 bg-yellow-50"
+                            : rank === 2
+                            ? "border-gray-300 bg-gray-50"
+                            : "border-orange-300 bg-orange-50";
 
-                {/* 右：ポイント合計（従来デザインのまま）
-                <div className="rounded-xl border border-gray-100 p-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <div className="flex justify-between">
-                      <span>日別内訳</span>
-                      <span>{perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
-                  </div>
-                </div> */}
-              {/* </div>
+                        return (
+                          <li
+                            key={p.id}
+                            className={[
+                              "flex items-center justify-between rounded-lg border px-3 py-2.5",
+                              rankStyle,
+                            ].join(" ")}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-right tabular-nums text-gray-500">
+                                {rank}.
+                              </span>
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-base">
+                                {p.avatar}
+                              </span>
+                              <span
+                                className="truncate text-base md:text-lg font-medium text-gray-800"
+                                title={p.username}
+                              >
+                                {p.username}
+                              </span>
+                            </div>
+                            <span className="text-sm text-transparent select-none">_</span>
+                          </li>
+                        );
+                      })
+                    )}
+                  </ul>
+                </Link>
+              </div>
             )}
           </CardContent>
-        </Card> */}
+        </Card>
+
+        {/* 右：ポイント合計（従来デザインのまま）
+        <div className="rounded-xl border border-gray-100 p-4">
+          <p className="text-sm font-medium text-gray-900 mb-2">現状の順位によるポイント合計</p>
+          <div className="text-sm text-gray-700 space-y-1">
+            <div className="flex justify-between">
+              <span>日別内訳</span>
+              <span>{perDayPoints.join(' + ')} = <b>{totalPoints}</b> pt</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">※ 暫定ロジックです。後で正式ルールに合わせて置き換えてください。</p>
+          </div>
+        </div> */}
       </div>
     </div>
   );
