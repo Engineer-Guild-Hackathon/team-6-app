@@ -262,7 +262,7 @@ export default function RaceScreen() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xl font-bold text-emerald-600">{participant.currentWeekStudyTime}時間</p>
+            <p className="text-xl font-bold text-emerald-600">{Math.floor(participant.currentWeekStudyTime / 60)}時間 {participant.currentWeekStudyTime % 60}分</p>
             {/* TODO: oddsはこれから調整 */}
             {/* <div className="text-sm text-gray-600">単勝 {participant.odds.win}倍</div> */}
           </div>
