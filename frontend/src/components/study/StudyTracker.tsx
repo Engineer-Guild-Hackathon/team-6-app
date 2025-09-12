@@ -86,13 +86,14 @@ export default function StudyTracker() {
 
       // CHANGED: alert -> toast.success
       toast.info(
-        `お疲れ様でした！\n${convertMinutesToHours(duration)}勉強して${betCoinsEarned}ベットコインを獲得しました！`,
+        <div>
+          <p>{convertMinutesToHours(duration)} の勉強、お疲れ様でした！{betCoinsEarned} ベットコインを獲得！</p>
+        </div>,
         {
           position: 'top-center',
-          autoClose: 3500,
+          autoClose: 4000,
           theme: 'colored',
-          // icon を少しリッチに
-          icon: <span>🏁</span>,
+          
         }
       );
     } else {
