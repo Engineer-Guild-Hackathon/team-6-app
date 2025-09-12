@@ -6,7 +6,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { toast } from 'react-toastify';
 import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUserId';
 import { StudySession, SubjectWithId } from '../../types';
-import { getStudySessionsFromUserId, getRecentStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
+import { getRecentStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
 import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
 
 export default function StudyTracker() {
@@ -32,21 +32,9 @@ export default function StudyTracker() {
       setUserSubjects(subjects);
     }
 
-    async function fetchRecent5() {
-      try {
-        setRecentLoading(true);
-        setRecentError(null);
-        const rows = await getRecentStudySessionsFromUserId(user!.id, 5);
-        setRecent5(rows);
-      } catch (e: any) {
-        setRecentError(e?.message ?? '取得に失敗しました');
-      } finally {
-        setRecentLoading(false);
-      }
-    }
 
     fetchSubjects();
-    fetchRecent5();
+    refreshRecent5(user!.id);
   }, [user]);
 
   useEffect(() => {
@@ -73,19 +61,7 @@ export default function StudyTracker() {
     }
   };
 
-  // useEffect ではこれを呼ぶ
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const subjects = await getStudySubjectsFromUserId(user.id);
-      setUserSubjects(subjects);
-      await refreshRecent5(user.id);
-    })();
-  }, [user]);
-
-  // 2) 保存中フラグを追加（多重クリック防止・UX向上）
   const [saving, setSaving] = useState(false);
-
 
   const handleStart = () => {
     if (!userSubjects.length) {
@@ -111,7 +87,6 @@ export default function StudyTracker() {
     setIsRunning(false);
   };
 
-  // 3) handleStop を async 化して、保存後に refreshRecent5 を実行
   const handleStop = async () => {
     if (time <= 0) {
       toast.error('タイマーが0秒です。記録は追加されません。', {
