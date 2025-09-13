@@ -487,7 +487,7 @@ export default function RaceScreen() {
           <CardContent>
             {(() => {
               const participants = [...selectedParticipants].sort(
-                (a: any, b: any) => b.currentStudyTime - a.currentStudyTime
+                (a, b) => Number(b.currentWeekStudyTime ?? 0) - Number(a.currentWeekStudyTime ?? 0)
               );
 
               return (
