@@ -23,7 +23,7 @@
 ---
 
 ## デモ　/ プレゼン資料
-- デモURL: 
+- デモURL: https://study-derby.vercel.app/
 - プレゼンURL：https://docs.google.com/presentation/d/15e_TQGekyS0RtXwLuCOjE4s29yD-MwF77R8s5UbzYEQ/edit?slide=id.p#slide=id.p
 
 
@@ -48,11 +48,6 @@
 - ランキングでユーザー同士が競い合う
 - 勉強の成果が「勉強」と縁が少ない報酬・ゲーム体験として即時に返ってくる
 
----
-## 📽️ デモ
-
----
-
 ## ✨ 機能
 - ユーザー認証
 - タイマーでの勉強記録
@@ -70,7 +65,7 @@
 | Backend | Supabase (Auth, Database), Flask(予定)|
 
 ---
-### 🔐 環境変数
+## 🔐 環境変数
 ```
 // .env
 VITE_SUPABASE_URL=https://{your_supabase_id}.supabase.co
@@ -145,10 +140,7 @@ team-6-app
 ## 工夫したところ
 - AIを用いて開発スピードを加速
 	- 最初にbolt.newを用いてUIを作成し，これを起点にコードの改修を進めていく形式にすることでデザインを考える時間を減らすことができた
-- Document管理にNotion, コミュニケーションツールにGahter, 開発環境はDocker, DBにSupabaseなど，実践的な環境で開発を行った
-
-
-	
+- Document管理にNotion, コミュニケーションツールにGahter, 開発環境にDocker, DBにSupabaseなど，実践的な環境で開発を行った
 
 --- 
 ## 苦労したところ
