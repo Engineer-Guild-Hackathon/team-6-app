@@ -512,28 +512,32 @@ export default function Dashboard() {
                 })()}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ▼ベット参加時（user.inRace === false） */}
-                {/* 左：順位表（全体クリックで遷移・1位差は表示しない） */}
-                <Link
-                  to={`/races/${race?.id}`}
-                  className="md:col-span-2 block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                  aria-label="順位表を開いてレースページへ移動"
-                >
-                  <p className="text-xs text-gray-500 mb-3">順位表</p>
-                  <ul className="space-y-2">
-                    {participantsLoading ? (
-                      <>
-                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-3/4" /></li>
-                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-2/3" /></li>
-                        <li className="py-2"><div className="h-5 bg-gray-100 rounded w-1/2" /></li>
-                      </>
-                    ) : participantsError ? (
-                      <li className="py-2 text-sm text-red-600">{participantsError}</li>
-                    ) : participants.length === 0 ? (
-                      <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
-                    ) : (
-                      participants.slice(0, 3).map((p, i) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* ▼ベット参加時（user.inRace === false） */}
+              {/* 左：順位表（全体クリックで遷移・1位差は表示しない） */}
+              <Link
+                to={`/races/${race?.id}`}
+                className="md:col-span-2 block rounded-xl border border-gray-100 p-4 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                aria-label="順位表を開いてレースページへ移動"
+              >
+                <p className="text-xs text-gray-500 mb-3">順位表</p>
+                <ul className="space-y-2">
+                  {participantsLoading ? (
+                    <>
+                      <li className="py-2"><div className="h-5 bg-gray-100 rounded w-3/4" /></li>
+                      <li className="py-2"><div className="h-5 bg-gray-100 rounded w-2/3" /></li>
+                      <li className="py-2"><div className="h-5 bg-gray-100 rounded w-1/2" /></li>
+                    </>
+                  ) : participantsError ? (
+                    <li className="py-2 text-sm text-red-600">{participantsError}</li>
+                  ) : participants.length === 0 ? (
+                    <li className="py-2 text-sm text-gray-500">参加者がまだいません</li>
+                  ) : (
+                    [...participants]
+                      // 今週の勉強時間（分）降順に統一
+                      .sort((a, b) => Number(b.currentWeekStudyTime ?? 0) - Number(a.currentWeekStudyTime ?? 0))
+                      .slice(0, 3)
+                      .map((p, i) => {
                         const rank = i + 1; // 配列順 = 順位
                         const rankStyle =
                           rank === 1
@@ -568,11 +572,11 @@ export default function Dashboard() {
                           </li>
                         );
                       })
-                    )}
-                  </ul>
-                </Link>
-              </div>
-            )}
+                  )}
+                </ul>
+              </Link>
+            </div>
+          )}
           </CardContent>
         </Card>
 
