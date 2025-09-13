@@ -194,22 +194,22 @@ export default function ProfileScreen() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5" />
+                  <User className="w-auto" />
                   <span>基本情報</span>
                 </CardTitle>
                 {!isEditing ? (
                   <Button variant="outline" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="h-4 w-4 mr-2" />
+                    <Edit2 className="w-auto mr-2" />
                     編集
                   </Button>
                 ) : (
                   <div className="flex space-x-2">
                     <Button onClick={handleSave} size="sm">
-                      <Save className="h-4 w-4 mr-2" />
+                      <Save className="w-auto mr-2" />
                       保存
                     </Button>
                     <Button variant="outline" onClick={handleCancel} size="sm">
-                      <X className="h-4 w-4 mr-2" />
+                      <X className="w-auto mr-2" />
                       キャンセル
                     </Button>
                   </div>
@@ -227,9 +227,8 @@ export default function ProfileScreen() {
                         <button
                           key={avatar}
                           onClick={() => setEditData((prev) => ({ ...prev, avatar }))}
-                          className={`text-3xl p-2 rounded-lg border-2 hover:bg-gray-50 ${
-                            editData.avatar === avatar ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
-                          }`}
+                          className={`text-3xl p-2 rounded-lg border-2 hover:bg-gray-50 ${editData.avatar === avatar ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200'
+                            }`}
                         >
                           {avatar}
                         </button>
@@ -256,42 +255,40 @@ export default function ProfileScreen() {
                           </p>
                         </>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           {/* 名前 */}
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                             <label className="w-16 text-base font-bold text-gray-700">名前：</label>
                             <input
                               type="text"
                               value={editData.username}
                               onChange={(e) => setEditData((prev) => ({ ...prev, username: e.target.value }))}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                              className="w-full flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                               placeholder="ユーザー名"
                             />
                           </div>
 
                           {/* 年齢 */}
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                             <label className="w-16 text-base font-bold text-gray-700">年齢：</label>
                             <input
                               type="number"
                               min={0}
                               max={120}
                               value={editData.age}
-                              onChange={(e) =>
-                                setEditData((prev) => ({ ...prev, age: Number(e.target.value) }))
-                              }
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                              onChange={(e) => setEditData((prev) => ({ ...prev, age: Number(e.target.value) }))}
+                              className="w-full flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                               placeholder="年齢"
                             />
                           </div>
 
                           {/* 職業 */}
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                             <label className="w-16 text-base font-bold text-gray-700">職業：</label>
                             <select
                               value={editData.occupation}
                               onChange={(e) => setEditData((prev) => ({ ...prev, occupation: e.target.value }))}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                              className="w-full flex-1 text-center px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                             >
                               <option value="">職業を選択</option>
                               <option value="大学生">大学生</option>
@@ -374,9 +371,8 @@ export default function ProfileScreen() {
                         {allSubjects.map((subject) => (
                           <label
                             key={subject}
-                            className={`cursor-pointer px-3 py-1 border rounded-lg ${
-                              selectedSubjects.includes(subject) ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-700 border-gray-300'
-                            }`}
+                            className={`cursor-pointer px-3 py-1 border rounded-lg ${selectedSubjects.includes(subject) ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-700 border-gray-300'
+                              }`}
                           >
                             <input
                               type="checkbox"
@@ -474,10 +470,9 @@ export default function ProfileScreen() {
                   return (
                     <div
                       key={c.key}
-                      className={`h-28 md:h-32 lg:h-40 rounded-lg border p-2 md:p-3 flex flex-col justify-between ${
-                        studied ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-gray-200'
-                      } ${c.isToday ? 'ring-2 ring-emerald-500' : ''}`}
-                      title={studied ? `${(minutes/60).toFixed(2)} 時間` : '勉強なし'}
+                      className={`h-28 md:h-32 lg:h-40 rounded-lg border p-2 md:p-3 flex flex-col justify-between ${studied ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-gray-200'
+                        } ${c.isToday ? 'ring-2 ring-emerald-500' : ''}`}
+                      title={studied ? `${(minutes / 60).toFixed(2)} 時間` : '勉強なし'}
                     >
                       <div className="text-sm md:text-base font-semibold text-gray-800">{c.day}</div>
                       {studied && <div className="text-xs md:text-sm font-medium text-emerald-800 self-end">{hoursText}</div>}
