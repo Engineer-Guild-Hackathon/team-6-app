@@ -8,6 +8,7 @@ import { getStudySubjectsFromUserId } from '../../utils/getStudySubjectsFromUser
 import { StudySession, SubjectWithId } from '../../types';
 import { getRecentStudySessionsFromUserId } from '../../utils/getStudySessionsFromUserId';
 import { convertMinutesToHours } from '../../utils/convertMinutesToHours';
+import { Link } from 'react-router-dom';
 
 export default function StudyTracker() {
   const { user, addStudySession } = useAppContext();
@@ -178,32 +179,40 @@ export default function StudyTracker() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 勉強科目を選択
               </label>
-              <div className="flex justify-center space-x-2 mb-2">
-                <select
-                  value={selectedSubject?.id || ''}
-                  onChange={(e) => setSelectedSubject(userSubjects.find(sub => sub.id === e.target.value) || null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  disabled={isRunning}
-                >
-                  <option value="">科目を選択</option>
-                  {userSubjects.length > 0 ? (
-                    userSubjects.map((sub, index) => (
+              {userSubjects.length === 0 ? (
+                <p className="text-red-600 text-sm mb-2 text-center">
+                  <Link to="/profile" className="underline hover:text-red-800">
+                    プロフィール画面で科目を追加してください
+                  </Link>
+                </p>
+              ) : (
+                <div className="flex justify-center space-x-2 mb-2">
+                  <select
+                    value={selectedSubject?.id || ''}
+                    onChange={(e) =>
+                      setSelectedSubject(
+                        userSubjects.find((sub) => sub.id === e.target.value) || null
+                      )
+                    }
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    disabled={isRunning}
+                  >
+                    <option value="">科目を選択</option>
+                    {userSubjects.map((sub, index) => (
                       <option key={index} value={sub.id}>
                         {sub.name}
                       </option>
-                    ))
-                  ) : (
-                    <option disabled>科目がありません</option>
-                  )}
-                </select>
-                {/* <Button
-                  variant="outline"
-                  onClick={() => setShowNewSubjectInput(true)}
-                  disabled={isRunning}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button> */}
-              </div>
+                    ))}
+                  </select>
+                  {/* <Button
+                    variant="outline"
+                    onClick={() => setShowNewSubjectInput(true)}
+                    disabled={isRunning}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button> */}
+                </div>
+              )}
 
               {showNewSubjectInput && (
                 <div className="flex justify-center space-x-2 mt-2">
@@ -215,9 +224,9 @@ export default function StudyTracker() {
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                   <Button onClick={handleAddSubject} size="sm">追加</Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowNewSubjectInput(false)} 
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowNewSubjectInput(false)}
                     size="sm"
                   >
                     キャンセル
