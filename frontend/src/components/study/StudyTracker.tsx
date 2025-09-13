@@ -196,13 +196,13 @@ export default function StudyTracker() {
                     <option disabled>科目がありません</option>
                   )}
                 </select>
-                <Button
+                {/* <Button
                   variant="outline"
                   onClick={() => setShowNewSubjectInput(true)}
                   disabled={isRunning}
                 >
                   <Plus className="h-4 w-4" />
-                </Button>
+                </Button> */}
               </div>
 
               {showNewSubjectInput && (
